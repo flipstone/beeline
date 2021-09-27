@@ -1,0 +1,6 @@
+resolver: lts-17.5
+allow-different-user: true
+
+extra-deps:
+  - git: https://github.com/flipstone/shrubbery.git
+    commit: ba602d04c5f85a0909fa4efa2227c07178bdb513

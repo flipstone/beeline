@@ -1,0 +1,27 @@
+name: beeline
+version: 0.1.0.0
+license: MIT
+author: "Flipstone Technology Partners"
+maintainer: "development@flipstone.com"
+git: "git@github.com:flipstone/beeline.git"
+
+extra-source-files:
+  - README.md
+
+library:
+  source-dirs: src
+  exposed-modules:
+    - Beeline.RouteDocumenter
+    - Beeline.RouteGenerator
+    - Beeline.Router
+    - Beeline.RouteRecognizer
+
+dependencies:
+  - base
+  - http-types
+  - shrubbery
+  - text
+
+ghc-options:
+  - -Wall
+  - -Wno-name-shadowing
