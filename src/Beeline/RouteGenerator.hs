@@ -33,7 +33,7 @@ generateRoutePiece pieceText subGenerator =
     let (method, path) = generateRoute subGenerator a
     in (method, "/" <> pieceText <> path)
 
-generateRouteParam :: (a -> Text)
+generateRouteParam :: Text
                    -> (Text -> Either Text param)
                    -> (param -> Text)
                    -> (route -> param)

@@ -42,7 +42,7 @@ recognizeRoutePiece expectedPiece subRouter =
         then recognizeRoute subRouter method ps
         else Left "No route matched"
 
-recognizeRouteParam :: (a -> Text)
+recognizeRouteParam :: Text
                     -> (Text -> Either Text param)
                     -> (param -> Text)
                     -> (route -> param)

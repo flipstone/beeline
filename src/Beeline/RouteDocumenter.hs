@@ -33,17 +33,15 @@ documentRoutePiece pieceText subDocumenter =
     let (method, path) = documentRoute subDocumenter a
     in (method, "/" <> pieceText <> path)
 
-documentRouteParam :: (param -> Text)
+documentRouteParam :: Text
                    -> (Text -> Either Text param)
                    -> (param -> Text)
                    -> (route -> param)
                    -> RouteDocumenter (param -> route)
                    -> RouteDocumenter route
-documentRouteParam paramToName _ _ getParam subDocumenter =
+documentRouteParam paramName _ _ _ subDocumenter =
   RouteDocumenter $ \a ->
-    let param = getParam a
-        paramName = paramToName param
-        (method, path) = documentRoute subDocumenter $ const a
+    let (method, path) = documentRoute subDocumenter $ const a
     in (method, "/" <> "{" <> paramName <> "}" <> path)
 
 documentRouteEnd :: HTTP.StdMethod -> a -> RouteDocumenter a
