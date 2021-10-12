@@ -5,9 +5,7 @@
 module Beeline.Router
   ( Router
   , RouteList
-  , HasParam(..)
   , piece
-  , explicitParam
   , param
   , end
   , routeList
@@ -20,32 +18,17 @@ import           Data.Kind (Type)
 import           Shrubbery (Union)
 import           Shrubbery.TypeList (KnownLength)
 
+import           Beeline.ParameterDefinition (ParameterDefinition)
 import qualified Network.HTTP.Types as HTTP
-
-class HasParam a where
-  name :: proxy a -> Text -- for documentation
-  parseParam :: Text -> Either Text a
-  renderParam   :: a -> Text
-
-param :: (HasParam a, Router r) => (b -> a) -> r (a -> b) -> r b
-param accessor =
-  explicitParam
-    (name accessor) -- uses the accessor as a `proxy a` to get the name of the param
-    parseParam
-    renderParam
-    accessor
 
 class Router r where
   data RouteList r (subRoutes :: [Type]) :: *
 
-  piece         :: Text -> r a -> r a
-  explicitParam ::  -- |  the name of the parameter for documentation
-                   Text
-                -> (Text -> Either Text a)
-                -> (a -> Text)
-                -> (b -> a)
-                -> r (a -> b)
-                -> r b
+  piece :: Text -> r a -> r a
+  param :: ParameterDefinition a
+        -> (b -> a)
+        -> r (a -> b)
+        -> r b
 
   end         :: HTTP.StdMethod -> a -> r a
   routeList   :: KnownLength types => RouteList r types -> r (Union types)

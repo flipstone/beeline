@@ -15,7 +15,7 @@ import qualified Network.HTTP.Types as HTTP
 import qualified Beeline as Beeline
 import qualified Fixtures.FooBarBaz as FBB
 import           Fixtures.SimpleNoArgRoute (SimpleNoArgRoute(SimpleNoArgRoute))
-import           Fixtures.TextParam (genTextParam)
+import           Fixtures.TextParam (textParamDef, genTextParam)
 
 tests :: IO Bool
 tests =
@@ -57,12 +57,12 @@ prop_param =
 
     let
       generator =
-        Beeline.param id $ Beeline.end method id
+        Beeline.param textParamDef id $ Beeline.end method id
 
       result =
         Beeline.generateRoute generator param
 
-    result === (method, "/" <> Beeline.renderParam param)
+    result === (method, "/" <> Beeline.parameterRenderer textParamDef param)
 
 prop_routeList :: HH.Property
 prop_routeList =

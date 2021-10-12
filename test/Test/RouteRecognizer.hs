@@ -14,7 +14,7 @@ import qualified Network.HTTP.Types as HTTP
 import qualified Beeline as Beeline
 import qualified Fixtures.FooBarBaz as FBB
 import           Fixtures.SimpleNoArgRoute (SimpleNoArgRoute(SimpleNoArgRoute))
-import           Fixtures.TextParam (genTextParam)
+import           Fixtures.TextParam (textParamDef, genTextParam)
 
 tests :: IO Bool
 tests =
@@ -51,10 +51,10 @@ prop_param =
 
     let
       recognizer =
-        Beeline.param id $ Beeline.end method id
+        Beeline.param textParamDef id $ Beeline.end method id
 
       result =
-        Beeline.recognizeRoute recognizer method [Beeline.renderParam param]
+        Beeline.recognizeRoute recognizer method [Beeline.parameterRenderer textParamDef param]
 
     result === Right param
 

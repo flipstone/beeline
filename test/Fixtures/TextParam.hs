@@ -1,6 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Fixtures.TextParam
   ( TextParam
+  , textParamDef
   , genTextParam
   ) where
 
@@ -15,10 +16,9 @@ newtype TextParam =
   TextParam Text
   deriving (Eq, Show)
 
-instance Beeline.HasParam TextParam where
-  name _ = "TextParam"
-  parseParam = Right . TextParam
-  renderParam (TextParam txt) = txt
+textParamDef :: Beeline.ParameterDefinition TextParam
+textParamDef =
+  Beeline.coerceParam (Beeline.textParam "TextParam")
 
 genTextParam :: HH.Gen TextParam
 genTextParam =

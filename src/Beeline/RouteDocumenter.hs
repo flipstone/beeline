@@ -9,7 +9,8 @@ import qualified Network.HTTP.Types as HTTP
 import           Shrubbery
 import           Data.Text (Text)
 
-import           Beeline.Router
+import           Beeline.Router (Router(..))
+import           Beeline.ParameterDefinition (ParameterDefinition(parameterName))
 
 newtype RouteDocumenter a =
   RouteDocumenter
@@ -21,7 +22,7 @@ instance Router RouteDocumenter where
     RouteBranches (BranchBuilder subRoutes (HTTP.StdMethod, Text))
 
   piece         = documentRoutePiece
-  explicitParam = documentRouteParam
+  param         = documentRouteParam
   end           = documentRouteEnd
   routeList (RouteBranches branches) = RouteDocumenter (dissect (branchBuild branches))
   addRoute (RouteDocumenter route) (RouteBranches branches) = RouteBranches $ branch route branches
@@ -33,16 +34,14 @@ documentRoutePiece pieceText subDocumenter =
     let (method, path) = documentRoute subDocumenter a
     in (method, "/" <> pieceText <> path)
 
-documentRouteParam :: Text
-                   -> (Text -> Either Text param)
-                   -> (param -> Text)
+documentRouteParam :: ParameterDefinition param
                    -> (route -> param)
                    -> RouteDocumenter (param -> route)
                    -> RouteDocumenter route
-documentRouteParam paramName _ _ _ subDocumenter =
+documentRouteParam paramDef _ subDocumenter =
   RouteDocumenter $ \a ->
     let (method, path) = documentRoute subDocumenter $ const a
-    in (method, "/" <> "{" <> paramName <> "}" <> path)
+   in (method, "/" <> "{" <> parameterName paramDef <> "}" <> path)
 
 documentRouteEnd :: HTTP.StdMethod -> a -> RouteDocumenter a
 documentRouteEnd method _ =

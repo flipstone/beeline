@@ -14,7 +14,8 @@ import           Shrubbery.Parser (Parser, parse, parseEnd, parseOption)
 import           Data.Text (Text)
 import           Data.Either (rights)
 
-import           Beeline.Router
+import           Beeline.Router (Router(..))
+import           Beeline.ParameterDefinition (ParameterDefinition(parameterParser))
 
 newtype RouteRecognizer a =
   RouteRecognizer
@@ -26,7 +27,7 @@ instance Router RouteRecognizer where
     RouteParser (Parser (Either Text) (HTTP.StdMethod, [Text]) subRoutes)
 
   piece         = recognizeRoutePiece
-  explicitParam = recognizeRouteParam
+  param         = recognizeRouteParam
   end           = recognizeRouteEnd
   routeList     = recognizeRouteRouteList
   addRoute      = recognizeRouteAddRoute
@@ -42,18 +43,16 @@ recognizeRoutePiece expectedPiece subRouter =
         then recognizeRoute subRouter method ps
         else Left "No route matched"
 
-recognizeRouteParam :: Text
-                    -> (Text -> Either Text param)
-                    -> (param -> Text)
+recognizeRouteParam :: ParameterDefinition param
                     -> (route -> param)
                     -> RouteRecognizer (param -> route)
                     -> RouteRecognizer route
-recognizeRouteParam _ parseParam _ _ subParser =
+recognizeRouteParam paramDef _ subParser =
   RouteRecognizer $ \method pathParams ->
     case pathParams of
       [] -> Left "No route matched"
       p:ps -> do
-        param <- parseParam p
+        param <- parameterParser paramDef p
         endpoint <- recognizeRoute subParser method ps
         pure $ endpoint param
 

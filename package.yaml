@@ -12,6 +12,7 @@ library:
   source-dirs: src
   exposed-modules:
     - Beeline
+    - Beeline.ParameterDefinition
     - Beeline.RouteDocumenter
     - Beeline.RouteGenerator
     - Beeline.Router
@@ -22,6 +23,7 @@ dependencies:
   - http-types
   - shrubbery
   - text
+  - attoparsec
 
 ghc-options:
   - -Wall
