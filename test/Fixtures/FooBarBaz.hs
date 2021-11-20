@@ -4,6 +4,7 @@ module Fixtures.FooBarBaz
   ( Foo
   , Bar
   , Baz
+  , FooBarBaz
   , fooBarBazToText
   , fooBarBazRouter
   , genFooBarBaz
@@ -21,7 +22,9 @@ data Foo = Foo deriving (Show)
 data Bar = Bar deriving (Show)
 data Baz = Baz deriving (Show)
 
-fooBarBazToText :: Shrubbery.Union [Foo, Bar, Baz] -> Text
+type FooBarBaz = Shrubbery.Union [Foo, Bar, Baz]
+
+fooBarBazToText :: FooBarBaz -> Text
 fooBarBazToText =
   Shrubbery.dissect
   $ Shrubbery.branchBuild
@@ -30,15 +33,15 @@ fooBarBazToText =
   $ Shrubbery.branch (\Baz -> "baz")
   $ Shrubbery.branchEnd
 
-fooBarBazRouter :: Beeline.Router r => r(Shrubbery.Union [Foo, Bar, Baz])
+fooBarBazRouter :: Beeline.Router r => r FooBarBaz
 fooBarBazRouter =
   Beeline.routeList
-  $ Beeline.addRoute (Beeline.piece "foo" $ Beeline.end HTTP.GET Foo)
-  $ Beeline.addRoute (Beeline.piece "bar" $ Beeline.end HTTP.GET Bar)
-  $ Beeline.addRoute (Beeline.piece "baz" $ Beeline.end HTTP.GET Baz)
+  $ Beeline.addRoute (Beeline.route Foo $ Beeline.piece "foo" $ Beeline.end HTTP.GET)
+  $ Beeline.addRoute (Beeline.route Bar $ Beeline.piece "bar" $ Beeline.end HTTP.GET)
+  $ Beeline.addRoute (Beeline.route Baz $ Beeline.piece "baz" $ Beeline.end HTTP.GET)
   $ Beeline.emptyRoutes
 
-genFooBarBaz :: HH.Gen (Shrubbery.Union [Foo, Bar, Baz])
+genFooBarBaz :: HH.Gen FooBarBaz
 genFooBarBaz =
   Gen.element
     [ Shrubbery.unify Foo

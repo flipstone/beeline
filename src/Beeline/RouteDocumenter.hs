@@ -1,48 +1,82 @@
+{-# LANGUAGE GADTs #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module Beeline.RouteDocumenter
   ( RouteDocumenter(..)
+  , documentRoute
   ) where
 
 import qualified Network.HTTP.Types as HTTP
 import           Shrubbery
 import           Data.Text (Text)
+import qualified Data.Text as T
 
 import           Beeline.Router (Router(..))
 import           Beeline.ParameterDefinition (ParameterDefinition(parameterName))
 
-newtype RouteDocumenter a =
+newtype RouteDocumenter route =
   RouteDocumenter
-    { documentRoute :: a -> (HTTP.StdMethod, Text)
+    { documentSubroute :: route -> ([Text] -> [Text]) -> (HTTP.StdMethod, Text)
     }
+
+documentRoute :: RouteDocumenter route -> route -> (HTTP.StdMethod, Text)
+documentRoute documenter route =
+  documentSubroute documenter route id
 
 instance Router RouteDocumenter where
   newtype RouteList RouteDocumenter subRoutes =
-    RouteBranches (BranchBuilder subRoutes (HTTP.StdMethod, Text))
+    RouteBranches (BranchBuilder subRoutes (([Text] -> [Text]) -> (HTTP.StdMethod, Text)))
 
-  piece         = documentRoutePiece
-  param         = documentRouteParam
-  end           = documentRouteEnd
+  newtype RoutePieces RouteDocumenter route a =
+    RoutePieces (route -> ([Text] -> [Text]) -> (HTTP.StdMethod, Text))
+
+  route = documentRouteRoute
+  piece = documentRoutePiece
+  param = documentRouteParam
+  end = documentRouteEnd
+  subrouter = documentRouteSubrouter
   routeList (RouteBranches branches) = RouteDocumenter (dissect (branchBuild branches))
   addRoute (RouteDocumenter route) (RouteBranches branches) = RouteBranches $ branch route branches
   emptyRoutes = RouteBranches branchEnd
 
-documentRoutePiece :: Text -> RouteDocumenter a -> RouteDocumenter a
-documentRoutePiece pieceText subDocumenter =
-  RouteDocumenter $ \a ->
-    let (method, path) = documentRoute subDocumenter a
-    in (method, "/" <> pieceText <> path)
+documentRouteRoute :: a
+                   -> RoutePieces RouteDocumenter route (a -> route)
+                   -> RouteDocumenter route
+documentRouteRoute _ (RoutePieces document) =
+  RouteDocumenter document
+
+documentRoutePiece :: Text
+                   -> RoutePieces RouteDocumenter route a
+                   -> RoutePieces RouteDocumenter route a
+documentRoutePiece pieceText (RoutePieces documentRest) =
+  RoutePieces $ \route mkPath ->
+    documentRest route (mkPath . (pieceText:))
 
 documentRouteParam :: ParameterDefinition param
                    -> (route -> param)
-                   -> RouteDocumenter (param -> route)
-                   -> RouteDocumenter route
-documentRouteParam paramDef _ subDocumenter =
-  RouteDocumenter $ \a ->
-    let (method, path) = documentRoute subDocumenter $ const a
-   in (method, "/" <> "{" <> parameterName paramDef <> "}" <> path)
+                   -> RoutePieces RouteDocumenter route (constructor -> route)
+                   -> RoutePieces RouteDocumenter route ((param -> constructor) -> route)
+documentRouteParam paramDef _ (RoutePieces documentRest) =
+  RoutePieces $ \route mkPath ->
+    let
+      paramText =
+        "{" <> parameterName paramDef <> "}"
+    in
+      documentRest route (mkPath . (paramText:))
 
-documentRouteEnd :: HTTP.StdMethod -> a -> RouteDocumenter a
-documentRouteEnd method _ =
-  RouteDocumenter $ const (method, "")
+documentRouteEnd :: HTTP.StdMethod -> RoutePieces RouteDocumenter route (route -> route)
+documentRouteEnd method =
+  RoutePieces $ \_ mkPath ->
+    let
+      pathParts =
+        mkPath []
+    in
+      (method, "/" <> T.intercalate "/" pathParts)
+
+documentRouteSubrouter :: (route -> subroute)
+                       -> RouteDocumenter subroute
+                       -> RoutePieces RouteDocumenter route ((subroute -> route) -> route)
+documentRouteSubrouter accessor subdocumentor =
+  RoutePieces $ \route mkPath ->
+    documentSubroute subdocumentor (accessor route) mkPath

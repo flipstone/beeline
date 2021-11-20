@@ -26,45 +26,67 @@ instance Router RouteRecognizer where
   newtype RouteList RouteRecognizer subRoutes =
     RouteParser (Parser (Either Text) (HTTP.StdMethod, [Text]) subRoutes)
 
-  piece         = recognizeRoutePiece
-  param         = recognizeRouteParam
-  end           = recognizeRouteEnd
-  routeList     = recognizeRouteRouteList
-  addRoute      = recognizeRouteAddRoute
-  emptyRoutes   = RouteParser parseEnd
+  data RoutePieces RouteRecognizer route a where
+    RoutePieces :: (c -> HTTP.StdMethod -> [Text] -> Either Text route)
+                -> RoutePieces RouteRecognizer route (c -> route)
 
-recognizeRoutePiece :: Text -> RouteRecognizer a -> RouteRecognizer a
-recognizeRoutePiece expectedPiece subRouter =
+  route = recognizeRouteRoute
+  piece = recognizeRoutePiece
+  param = recognizeRouteParam
+  subrouter = recognizeRouteSubrouter
+  end = recognizeRouteEnd
+  routeList = recognizeRouteRouteList
+  addRoute = recognizeRouteAddRoute
+  emptyRoutes = RouteParser parseEnd
+
+recognizeRouteRoute :: a
+                    -> RoutePieces RouteRecognizer route (a -> route)
+                    -> RouteRecognizer route
+recognizeRouteRoute constructor (RoutePieces recognize) =
   RouteRecognizer $ \method pathPieces ->
-    case pathPieces of
+    recognize constructor method pathPieces
+
+recognizeRoutePiece :: Text
+                    -> RoutePieces RouteRecognizer route a
+                    -> RoutePieces RouteRecognizer route a
+recognizeRoutePiece expectedPiece (RoutePieces recognizeRest) =
+  RoutePieces $ \constructor method path ->
+    case path of
       [] -> Left "No path left to match"
       p:ps ->
-        if   p == expectedPiece
-        then recognizeRoute subRouter method ps
+        if p == expectedPiece
+        then recognizeRest constructor method ps
         else Left "No route matched"
 
-recognizeRouteParam :: ParameterDefinition param
-                    -> (route -> param)
-                    -> RouteRecognizer (param -> route)
-                    -> RouteRecognizer route
-recognizeRouteParam paramDef _ subParser =
-  RouteRecognizer $ \method pathParams ->
-    case pathParams of
+recognizeRouteParam :: ParameterDefinition a
+                    -> (route -> a)
+                    -> RoutePieces RouteRecognizer route (c -> route)
+                    -> RoutePieces RouteRecognizer route ((a -> c) -> route)
+recognizeRouteParam paramDef _ (RoutePieces recognizeRest) =
+  RoutePieces $ \constructor method path ->
+    case path of
       [] -> Left "No route matched"
       p:ps -> do
         param <- parameterParser paramDef p
-        endpoint <- recognizeRoute subParser method ps
-        pure $ endpoint param
+        recognizeRest (constructor param) method ps
 
-recognizeRouteEnd :: HTTP.StdMethod -> a -> RouteRecognizer a
-recognizeRouteEnd expectedMethod a =
-  RouteRecognizer $ \method pathPieces ->
-    case pathPieces of
+recognizeRouteEnd :: HTTP.StdMethod
+                  -> RoutePieces RouteRecognizer route (route -> route)
+recognizeRouteEnd expectedMethod =
+  RoutePieces $ \constructor method path ->
+    case path of
       [] ->
-        if   expectedMethod == method
-        then Right a
+        if method == expectedMethod
+        then Right constructor
         else Left "Different method expected"
       _ -> Left "Path not finished"
+
+recognizeRouteSubrouter :: (route -> subroute)
+                        -> RouteRecognizer subroute
+                        -> RoutePieces RouteRecognizer route ((subroute -> route) -> route)
+recognizeRouteSubrouter _ subrouter =
+  RoutePieces $ \constructor method path ->
+    constructor <$> recognizeRoute subrouter method path
 
 recognizeRouteAddRoute :: RouteRecognizer a
                        -> RouteList RouteRecognizer subRoutes

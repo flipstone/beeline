@@ -3,14 +3,9 @@
 {-# LANGUAGE TypeOperators #-}
 
 module Beeline.Router
-  ( Router
+  ( Router(..)
   , RouteList
-  , piece
-  , param
-  , end
-  , routeList
-  , addRoute
-  , emptyRoutes
+  , RoutePieces
   ) where
 
 import           Data.Text (Text)
@@ -23,14 +18,27 @@ import qualified Network.HTTP.Types as HTTP
 
 class Router r where
   data RouteList r (subRoutes :: [Type]) :: *
+  data RoutePieces r route a :: *
 
-  piece :: Text -> r a -> r a
+  route :: a
+        -> RoutePieces r route (a -> route)
+        -> r route
+
+  piece :: Text
+        -> RoutePieces r route a
+        -> RoutePieces r route a
+
   param :: ParameterDefinition a
-        -> (b -> a)
-        -> r (a -> b)
-        -> r b
+        -> (route -> a)
+        -> RoutePieces r route (c -> route)
+        -> RoutePieces r route ((a -> c) -> route)
 
-  end         :: HTTP.StdMethod -> a -> r a
+  subrouter :: (route -> subroute)
+            -> r subroute
+            -> RoutePieces r route ((subroute -> route) -> route)
+
+  end :: HTTP.StdMethod -> RoutePieces r route (route -> route)
+
   routeList   :: KnownLength types => RouteList r types -> r (Union types)
   addRoute    :: r a -> RouteList r rest -> RouteList r (a : rest)
   emptyRoutes :: RouteList r '[]

@@ -22,8 +22,9 @@ tests =
   HH.checkParallel $
     HH.Group "RouteGenerator"
       [ ("piece generates the given text", prop_piece)
-      , ("param extracts a path param", prop_param)
-      , ("routeList picks the (first) matching route)", prop_routeList)
+      , ("param renders a path parameter", prop_param)
+      , ("param renders multiple path parameters", prop_multiParam)
+      , ("routeList renders the appropriate route from the list", prop_routeList)
       ]
 
 prop_piece :: HH.Property
@@ -34,18 +35,17 @@ prop_piece =
 
     let
       generator =
-        foldr
-          Beeline.piece
-          (Beeline.end method SimpleNoArgRoute)
-          path
+        Beeline.route SimpleNoArgRoute $
+          foldr
+            Beeline.piece
+            (Beeline.end method)
+            path
 
       result =
         Beeline.generateRoute generator SimpleNoArgRoute
 
       expectedText =
-        case path of
-          [] -> ""
-          _  -> "/" <> T.intercalate "/" path
+        "/" <> T.intercalate "/" path
 
     result === (method, expectedText)
 
@@ -57,12 +57,37 @@ prop_param =
 
     let
       generator =
-        Beeline.param textParamDef id $ Beeline.end method id
+        Beeline.route id $ Beeline.param textParamDef id $ Beeline.end method
 
       result =
         Beeline.generateRoute generator param
 
     result === (method, "/" <> Beeline.parameterRenderer textParamDef param)
+
+prop_multiParam :: HH.Property
+prop_multiParam =
+  HH.property $ do
+    param1 <- HH.forAll genTextParam
+    param2 <- HH.forAll genTextParam
+    method <- HH.forAll genMethod
+
+    let
+      generator =
+        Beeline.route (,)
+        $ Beeline.param textParamDef fst
+        $ Beeline.param textParamDef snd
+        $ Beeline.end method
+
+      result =
+        Beeline.generateRoute generator (param1, param2)
+
+      expectedPath =
+        "/"
+        <> Beeline.parameterRenderer textParamDef param1
+        <> "/"
+        <> Beeline.parameterRenderer textParamDef param2
+
+    result === (method, expectedPath)
 
 prop_routeList :: HH.Property
 prop_routeList =

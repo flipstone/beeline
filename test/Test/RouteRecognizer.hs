@@ -22,6 +22,7 @@ tests =
     HH.Group "RouteRecognizer"
       [ ("piece exactly matches route pieces", prop_piece)
       , ("param extracts a path param", prop_param)
+      , ("param extracts multiple path params", prop_multiParam)
       , ("routeList picks the (first) matching route)", prop_routeList)
       ]
 
@@ -33,10 +34,11 @@ prop_piece =
 
     let
       recognizer =
-        foldr
-          Beeline.piece
-          (Beeline.end method SimpleNoArgRoute)
-          path
+        Beeline.route SimpleNoArgRoute $
+          foldr
+            Beeline.piece
+            (Beeline.end method)
+            path
 
       result =
         Beeline.recognizeRoute recognizer method path
@@ -51,12 +53,36 @@ prop_param =
 
     let
       recognizer =
-        Beeline.param textParamDef id $ Beeline.end method id
+        Beeline.route id $ Beeline.param textParamDef id $ Beeline.end method
 
       result =
         Beeline.recognizeRoute recognizer method [Beeline.parameterRenderer textParamDef param]
 
     result === Right param
+
+prop_multiParam :: HH.Property
+prop_multiParam =
+  HH.property $ do
+    param1 <- HH.forAll genTextParam
+    param2 <- HH.forAll genTextParam
+    method <- HH.forAll genMethod
+
+    let
+      recognizer =
+        Beeline.route (,)
+        $ Beeline.param textParamDef fst
+        $ Beeline.param textParamDef snd
+        $ Beeline.end method
+
+      result =
+        Beeline.recognizeRoute
+          recognizer
+          method
+          [ Beeline.parameterRenderer textParamDef param1
+          , Beeline.parameterRenderer textParamDef param2
+          ]
+
+    result === Right (param1, param2)
 
 prop_routeList :: HH.Property
 prop_routeList =
