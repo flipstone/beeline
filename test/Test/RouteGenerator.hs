@@ -15,6 +15,7 @@ import qualified Network.HTTP.Types as HTTP
 import qualified Beeline as Beeline
 import qualified Fixtures.FooBarBaz as FBB
 import           Fixtures.SimpleNoArgRoute (SimpleNoArgRoute(SimpleNoArgRoute))
+import qualified Fixtures.Subrouter as Subrouter
 import           Fixtures.TextParam (textParamDef, genTextParam)
 
 tests :: IO Bool
@@ -25,6 +26,7 @@ tests =
       , ("param renders a path parameter", prop_param)
       , ("param renders multiple path parameters", prop_multiParam)
       , ("routeList renders the appropriate route from the list", prop_routeList)
+      , ("subrouter renders the route with parent and subrouter parts", prop_subrouter)
       ]
 
 prop_piece :: HH.Property
@@ -99,6 +101,17 @@ prop_routeList =
         Beeline.generateRoute FBB.fooBarBazRouter route
 
     result === (HTTP.GET, "/" <> FBB.fooBarBazToText route)
+
+prop_subrouter :: HH.Property
+prop_subrouter =
+  HH.property $ do
+    route <- HH.forAll (fmap Subrouter.FooBarBazSubroute FBB.genFooBarBaz)
+
+    let
+      result =
+        Beeline.generateRoute Subrouter.router route
+
+    result === (HTTP.GET, "/" <> Subrouter.subrouteToText route)
 
 genPathPiece :: HH.Gen Text
 genPathPiece =

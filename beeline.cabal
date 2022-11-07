@@ -45,6 +45,7 @@ test-suite spec
   other-modules:
       Fixtures.FooBarBaz
       Fixtures.SimpleNoArgRoute
+      Fixtures.Subrouter
       Fixtures.TextParam
       Test.RouteGenerator
       Test.RouteRecognizer
