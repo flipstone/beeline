@@ -103,12 +103,12 @@ prop_routeList =
 prop_subrouter :: HH.Property
 prop_subrouter =
   HH.property $ do
-    route <- HH.forAll (fmap Subrouter.FooBarBazSubroute FBB.genFooBarBaz)
+    route <- HH.forAll Subrouter.genRouter
 
     let
       result =
         Beeline.recognizeRoute
-          Subrouter.router
+          Subrouter.subrouter
           HTTP.GET
           (Subrouter.subrouteToPieces route)
 

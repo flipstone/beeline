@@ -1,13 +1,14 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE OverloadedStrings #-}
 module Fixtures.FooBarBaz
-  ( Foo
+  ( Foo(Foo)
   , Bar
   , Baz
   , FooBarBaz
   , fooBarBazToText
   , fooBarBazRouter
   , genFooBarBaz
+  , handleFBB
   ) where
 
 import           Data.Text (Text)
@@ -26,11 +27,15 @@ type FooBarBaz = Shrubbery.Union [Foo, Bar, Baz]
 
 fooBarBazToText :: FooBarBaz -> Text
 fooBarBazToText =
-  Shrubbery.dissect
+  handleFBB "foo" "bar" "baz"
+
+handleFBB :: a -> a -> a -> FooBarBaz -> a
+handleFBB foo bar baz =
+    Shrubbery.dissect
   $ Shrubbery.branchBuild
-  $ Shrubbery.branch (\Foo -> "foo")
-  $ Shrubbery.branch (\Bar -> "bar")
-  $ Shrubbery.branch (\Baz -> "baz")
+  $ Shrubbery.branch (\Foo -> foo)
+  $ Shrubbery.branch (\Bar -> bar)
+  $ Shrubbery.branch (\Baz -> baz)
   $ Shrubbery.branchEnd
 
 fooBarBazRouter :: Beeline.Router r => r FooBarBaz
