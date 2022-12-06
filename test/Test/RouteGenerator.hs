@@ -105,7 +105,7 @@ prop_routeList =
 prop_subrouter :: HH.Property
 prop_subrouter =
   HH.property $ do
-    route <- HH.forAll Subrouter.genRouter
+    route <- HH.forAll Subrouter.genSubroutes
 
     let
       result =

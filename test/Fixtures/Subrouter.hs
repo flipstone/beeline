@@ -5,7 +5,7 @@ module Fixtures.Subrouter
   , subrouter
   , subrouteToText
   , subrouteToPieces
-  , genRouter
+  , genSubroutes
   , exampleRouteLeftFoo
   ) where
 
@@ -65,8 +65,8 @@ subrouteToPieces =
   $ Shrubbery.branch (\(RightSubroute r) -> [rightSubroutePath, FooBarBaz.fooBarBazToText r])
   $ Shrubbery.branchEnd
 
-genRouter :: HH.Gen Subroutes
-genRouter = do
+genSubroutes :: HH.Gen Subroutes
+genSubroutes = do
   fun <- Gen.element [Shrubbery.unify . LeftSubroute, Shrubbery.unify . RightSubroute]
   fun <$> FooBarBaz.genFooBarBaz
 

@@ -2,8 +2,8 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Fixtures.FooBarBaz
   ( Foo(Foo)
-  , Bar
-  , Baz
+  , Bar(Bar)
+  , Baz(Baz)
   , FooBarBaz
   , fooBarBazToText
   , fooBarBazRouter
@@ -27,15 +27,15 @@ type FooBarBaz = Shrubbery.Union [Foo, Bar, Baz]
 
 fooBarBazToText :: FooBarBaz -> Text
 fooBarBazToText =
-  handleFBB "foo" "bar" "baz"
+  handleFBB (\Foo -> "foo") (\Bar -> "bar") (\Baz -> "baz")
 
-handleFBB :: a -> a -> a -> FooBarBaz -> a
+handleFBB :: (Foo -> a) -> (Bar -> a) -> (Baz -> a) -> FooBarBaz -> a
 handleFBB foo bar baz =
     Shrubbery.dissect
   $ Shrubbery.branchBuild
-  $ Shrubbery.branch (\Foo -> foo)
-  $ Shrubbery.branch (\Bar -> bar)
-  $ Shrubbery.branch (\Baz -> baz)
+  $ Shrubbery.branch foo
+  $ Shrubbery.branch bar
+  $ Shrubbery.branch baz
   $ Shrubbery.branchEnd
 
 fooBarBazRouter :: Beeline.Router r => r FooBarBaz
