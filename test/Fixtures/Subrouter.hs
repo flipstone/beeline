@@ -1,44 +1,77 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE OverloadedStrings, DataKinds #-}
 module Fixtures.Subrouter
-  ( FooBarBazSubroute(..)
-  , router
-  , routerWithoutWrapper
-  , subroutePath
+  ( LeftSubroute(..)
+  , RightSubroute(..)
+  , subrouter
   , subrouteToText
   , subrouteToPieces
+  , genSubroutes
+  , exampleRouteLeftFoo
   ) where
 
 import qualified Data.Text as T
+import qualified Hedgehog as HH
+import qualified Hedgehog.Gen as Gen
 
 import qualified Beeline as Beeline
+import qualified Shrubbery
 
 import qualified Fixtures.FooBarBaz as FooBarBaz
 
-newtype FooBarBazSubroute =
-  FooBarBazSubroute
-    { subrouteFooBarBaz :: FooBarBaz.FooBarBaz
+newtype LeftSubroute =
+  LeftSubroute
+    { unLeftSubroute :: FooBarBaz.FooBarBaz
     } deriving Show
 
-subroutePath :: T.Text
-subroutePath =
-  "fooBarBaz"
+newtype RightSubroute =
+  RightSubroute
+    { unRightSubroute :: FooBarBaz.FooBarBaz
+    } deriving Show
 
-router :: Beeline.Router r => r FooBarBazSubroute
-router =
-  Beeline.route FooBarBazSubroute $
-    Beeline.piece subroutePath $
-      Beeline.subrouter subrouteFooBarBaz FooBarBaz.fooBarBazRouter
+type Subroutes = Shrubbery.Union '[LeftSubroute, RightSubroute]
 
-routerWithoutWrapper :: Beeline.Router r => r FooBarBaz.FooBarBaz
-routerWithoutWrapper =
-  Beeline.route id $
-    Beeline.piece subroutePath $
-      Beeline.subrouter id FooBarBaz.fooBarBazRouter
+leftSubroutePath :: T.Text
+leftSubroutePath =
+  "left"
 
-subrouteToText :: FooBarBazSubroute -> T.Text
+rightSubroutePath :: T.Text
+rightSubroutePath =
+  "right"
+
+subrouter :: Beeline.Router r => r Subroutes
+subrouter =
+  Beeline.routeList
+  $ Beeline.addRoute
+      ( Beeline.route LeftSubroute
+      $ Beeline.piece leftSubroutePath
+      $ Beeline.subrouter unLeftSubroute FooBarBaz.fooBarBazRouter
+      )
+  $ Beeline.addRoute
+      ( Beeline.route RightSubroute
+      $ Beeline.piece rightSubroutePath
+      $ Beeline.subrouter unRightSubroute FooBarBaz.fooBarBazRouter
+      )
+      Beeline.emptyRoutes
+
+subrouteToText :: Subroutes -> T.Text
 subrouteToText =
   T.intercalate "/" . subrouteToPieces
 
-subrouteToPieces :: FooBarBazSubroute -> [T.Text]
-subrouteToPieces (FooBarBazSubroute fooBarBazRoute) =
-  [subroutePath, FooBarBaz.fooBarBazToText fooBarBazRoute]
+subrouteToPieces :: Subroutes -> [T.Text]
+subrouteToPieces =
+  Shrubbery.dissect
+  $ Shrubbery.branchBuild
+  $ Shrubbery.branch (\(LeftSubroute r)  -> [leftSubroutePath, FooBarBaz.fooBarBazToText r])
+  $ Shrubbery.branch (\(RightSubroute r) -> [rightSubroutePath, FooBarBaz.fooBarBazToText r])
+  $ Shrubbery.branchEnd
+
+genSubroutes :: HH.Gen Subroutes
+genSubroutes = do
+  fun <- Gen.element [Shrubbery.unify . LeftSubroute, Shrubbery.unify . RightSubroute]
+  fun <$> FooBarBaz.genFooBarBaz
+
+exampleRouteLeftFoo :: Subroutes
+exampleRouteLeftFoo =
+    Shrubbery.unify
+  $ LeftSubroute
+  $ Shrubbery.unify FooBarBaz.Foo

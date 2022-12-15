@@ -105,11 +105,11 @@ prop_routeList =
 prop_subrouter :: HH.Property
 prop_subrouter =
   HH.property $ do
-    route <- HH.forAll (fmap Subrouter.FooBarBazSubroute FBB.genFooBarBaz)
+    route <- HH.forAll Subrouter.genSubroutes
 
     let
       result =
-        Beeline.generateRoute Subrouter.router route
+        Beeline.generateRoute Subrouter.subrouter route
 
     result === (HTTP.GET, "/" <> Subrouter.subrouteToText route)
 
