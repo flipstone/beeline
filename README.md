@@ -54,8 +54,8 @@ You can convert the parsed route into the previously mentioned `Either SumType S
     parser =
       Shrubbery.dissect
       $ Shrubbery.branchBuild
-      $ Shrubbery.branch (\(Subrouter.LeftSubroute fbb)  -> (Right $ FBB.handleFBB (\Foo -> RouteFoo) (\Bar -> RouteBar) (\Baz -> RouteBaz) fbb))
-      $ Shrubbery.branch (\(Subrouter.RightSubroute fbb) -> (Left  $ FBB.handleFBB (\Foo -> RouteFoo) (\Bar -> RouteBar) (\Baz -> RouteBaz) fbb))
+      $ Shrubbery.branch (\(Subrouter.LeftSubroute fbb)  -> (Right $ FBB.handleFooBarBaz (\Foo -> RouteFoo) (\Bar -> RouteBar) (\Baz -> RouteBaz) fbb))
+      $ Shrubbery.branch (\(Subrouter.RightSubroute fbb) -> (Left  $ FBB.handleFooBarBaz (\Foo -> RouteFoo) (\Bar -> RouteBar) (\Baz -> RouteBaz) fbb))
       $ Shrubbery.branchEnd
 
     parsed :: Either SumType SumType

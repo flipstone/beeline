@@ -8,7 +8,7 @@ module Fixtures.FooBarBaz
   , fooBarBazToText
   , fooBarBazRouter
   , genFooBarBaz
-  , handleFBB
+  , handleFooBarBaz
   ) where
 
 import           Data.Text (Text)
@@ -27,10 +27,10 @@ type FooBarBaz = Shrubbery.Union [Foo, Bar, Baz]
 
 fooBarBazToText :: FooBarBaz -> Text
 fooBarBazToText =
-  handleFBB (\Foo -> "foo") (\Bar -> "bar") (\Baz -> "baz")
+  handleFooBarBaz (\Foo -> "foo") (\Bar -> "bar") (\Baz -> "baz")
 
-handleFBB :: (Foo -> a) -> (Bar -> a) -> (Baz -> a) -> FooBarBaz -> a
-handleFBB foo bar baz =
+handleFooBarBaz :: (Foo -> a) -> (Bar -> a) -> (Baz -> a) -> FooBarBaz -> a
+handleFooBarBaz foo bar baz =
     Shrubbery.dissect
   $ Shrubbery.branchBuild
   $ Shrubbery.branch foo
