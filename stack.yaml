@@ -1,5 +1,8 @@
-resolver: lts-17.5
+resolver: lts-20.11
 allow-different-user: true
+system-ghc: true
+packages:
+  - beeline-router
 
 extra-deps:
   - git: https://github.com/flipstone/shrubbery.git

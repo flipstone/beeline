@@ -5,19 +5,19 @@
 
 packages:
 - completed:
+    commit: ba602d04c5f85a0909fa4efa2227c07178bdb513
+    git: https://github.com/flipstone/shrubbery.git
     name: shrubbery
-    version: 0.1.0.0
-    git: https://github.com/flipstone/shrubbery.git
     pantry-tree:
-      size: 1027
       sha256: 3d40a707d683387e5448df32f9d9c2d3b939fe34c528308d037e10bd81264da0
-    commit: ba602d04c5f85a0909fa4efa2227c07178bdb513
+      size: 1027
+    version: 0.1.0.0
   original:
-    git: https://github.com/flipstone/shrubbery.git
     commit: ba602d04c5f85a0909fa4efa2227c07178bdb513
+    git: https://github.com/flipstone/shrubbery.git
 snapshots:
 - completed:
-    size: 565266
-    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/17/5.yaml
-    sha256: 78e8ebabf11406261abbc95b44f240acf71802630b368888f6d758de7fc3a2f7
-  original: lts-17.5
+    sha256: adbc602422dde10cc330175da7de8609e70afc41449a7e2d6e8b1827aa0e5008
+    size: 649342
+    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/20/11.yaml
+  original: lts-20.11

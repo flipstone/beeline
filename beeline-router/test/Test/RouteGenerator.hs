@@ -1,27 +1,29 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE OverloadedStrings #-}
+
 module Test.RouteGenerator
   ( tests
   ) where
 
-import           Data.Text (Text)
+import Data.Text (Text)
 import qualified Data.Text as T
-import           Hedgehog ((===))
+import Hedgehog ((===))
 import qualified Hedgehog as HH
 import qualified Hedgehog.Gen as Gen
 import qualified Hedgehog.Range as Range
 import qualified Network.HTTP.Types as HTTP
 
-import qualified Beeline as Beeline
+import qualified Beeline.Routing as R
 import qualified Fixtures.FooBarBaz as FBB
-import           Fixtures.SimpleNoArgRoute (SimpleNoArgRoute(SimpleNoArgRoute))
+import Fixtures.SimpleNoArgRoute (SimpleNoArgRoute (SimpleNoArgRoute))
 import qualified Fixtures.Subrouter as Subrouter
-import           Fixtures.TextParam (textParamDef, genTextParam)
+import Fixtures.TextParam (genTextParam, textParamDef)
 
 tests :: IO Bool
 tests =
   HH.checkParallel $
-    HH.Group "RouteGenerator"
+    HH.Group
+      "RouteGenerator"
       [ ("piece generates the given text", prop_piece)
       , ("param renders a path parameter", prop_param)
       , ("param renders multiple path parameters", prop_multiParam)
@@ -37,14 +39,14 @@ prop_piece =
 
     let
       generator =
-        Beeline.route SimpleNoArgRoute $
+        R.route SimpleNoArgRoute $
           foldr
-            Beeline.piece
-            (Beeline.end method)
+            R.piece
+            (R.end method)
             path
 
       result =
-        Beeline.generateRoute generator SimpleNoArgRoute
+        R.generateRoute generator SimpleNoArgRoute
 
       expectedText =
         "/" <> T.intercalate "/" path
@@ -59,12 +61,12 @@ prop_param =
 
     let
       generator =
-        Beeline.route id $ Beeline.param textParamDef id $ Beeline.end method
+        R.route id $ R.param textParamDef id $ R.end method
 
       result =
-        Beeline.generateRoute generator param
+        R.generateRoute generator param
 
-    result === (method, "/" <> Beeline.parameterRenderer textParamDef param)
+    result === (method, "/" <> R.parameterRenderer textParamDef param)
 
 prop_multiParam :: HH.Property
 prop_multiParam =
@@ -75,19 +77,19 @@ prop_multiParam =
 
     let
       generator =
-        Beeline.route (,)
-        $ Beeline.param textParamDef fst
-        $ Beeline.param textParamDef snd
-        $ Beeline.end method
+        R.route (,)
+          . R.param textParamDef fst
+          . R.param textParamDef snd
+          $ R.end method
 
       result =
-        Beeline.generateRoute generator (param1, param2)
+        R.generateRoute generator (param1, param2)
 
       expectedPath =
         "/"
-        <> Beeline.parameterRenderer textParamDef param1
-        <> "/"
-        <> Beeline.parameterRenderer textParamDef param2
+          <> R.parameterRenderer textParamDef param1
+          <> "/"
+          <> R.parameterRenderer textParamDef param2
 
     result === (method, expectedPath)
 
@@ -98,7 +100,7 @@ prop_routeList =
 
     let
       result =
-        Beeline.generateRoute FBB.fooBarBazRouter route
+        R.generateRoute FBB.fooBarBazRouter route
 
     result === (HTTP.GET, "/" <> FBB.fooBarBazToText route)
 
@@ -109,7 +111,7 @@ prop_subrouter =
 
     let
       result =
-        Beeline.generateRoute Subrouter.subrouter route
+        R.generateRoute Subrouter.subrouter route
 
     result === (HTTP.GET, "/" <> Subrouter.subrouteToText route)
 
@@ -120,4 +122,3 @@ genPathPiece =
 genMethod :: HH.Gen HTTP.StdMethod
 genMethod =
   Gen.enumBounded
-

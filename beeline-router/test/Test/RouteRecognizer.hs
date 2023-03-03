@@ -1,26 +1,28 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE OverloadedStrings #-}
+
 module Test.RouteRecognizer
   ( tests
   ) where
 
-import           Data.Text (Text)
-import           Hedgehog ((===))
+import Data.Text (Text)
+import Hedgehog ((===))
 import qualified Hedgehog as HH
 import qualified Hedgehog.Gen as Gen
 import qualified Hedgehog.Range as Range
 import qualified Network.HTTP.Types as HTTP
 
-import qualified Beeline as Beeline
+import qualified Beeline.Routing as R
 import qualified Fixtures.FooBarBaz as FBB
-import           Fixtures.SimpleNoArgRoute (SimpleNoArgRoute(SimpleNoArgRoute))
+import Fixtures.SimpleNoArgRoute (SimpleNoArgRoute (SimpleNoArgRoute))
 import qualified Fixtures.Subrouter as Subrouter
-import           Fixtures.TextParam (textParamDef, genTextParam)
+import Fixtures.TextParam (genTextParam, textParamDef)
 
 tests :: IO Bool
 tests =
   HH.checkParallel $
-    HH.Group "RouteRecognizer"
+    HH.Group
+      "RouteRecognizer"
       [ ("piece exactly matches route pieces", prop_piece)
       , ("param extracts a path param", prop_param)
       , ("param extracts multiple path params", prop_multiParam)
@@ -36,14 +38,14 @@ prop_piece =
 
     let
       recognizer =
-        Beeline.route SimpleNoArgRoute $
+        R.route SimpleNoArgRoute $
           foldr
-            Beeline.piece
-            (Beeline.end method)
+            R.piece
+            (R.end method)
             path
 
       result =
-        Beeline.recognizeRoute recognizer method path
+        R.recognizeRoute recognizer method path
 
     result === Right SimpleNoArgRoute
 
@@ -55,10 +57,10 @@ prop_param =
 
     let
       recognizer =
-        Beeline.route id $ Beeline.param textParamDef id $ Beeline.end method
+        R.route id $ R.param textParamDef id $ R.end method
 
       result =
-        Beeline.recognizeRoute recognizer method [Beeline.parameterRenderer textParamDef param]
+        R.recognizeRoute recognizer method [R.parameterRenderer textParamDef param]
 
     result === Right param
 
@@ -71,17 +73,17 @@ prop_multiParam =
 
     let
       recognizer =
-        Beeline.route (,)
-        $ Beeline.param textParamDef fst
-        $ Beeline.param textParamDef snd
-        $ Beeline.end method
+        R.route (,)
+          . R.param textParamDef fst
+          . R.param textParamDef snd
+          $ R.end method
 
       result =
-        Beeline.recognizeRoute
+        R.recognizeRoute
           recognizer
           method
-          [ Beeline.parameterRenderer textParamDef param1
-          , Beeline.parameterRenderer textParamDef param2
+          [ R.parameterRenderer textParamDef param1
+          , R.parameterRenderer textParamDef param2
           ]
 
     result === Right (param1, param2)
@@ -93,7 +95,7 @@ prop_routeList =
 
     let
       result =
-        Beeline.recognizeRoute
+        R.recognizeRoute
           FBB.fooBarBazRouter
           HTTP.GET
           [FBB.fooBarBazToText route]
@@ -107,7 +109,7 @@ prop_subrouter =
 
     let
       result =
-        Beeline.recognizeRoute
+        R.recognizeRoute
           Subrouter.subrouter
           HTTP.GET
           (Subrouter.subrouteToPieces route)
@@ -121,4 +123,3 @@ genPathPiece =
 genMethod :: HH.Gen HTTP.StdMethod
 genMethod =
   Gen.enumBounded
-
