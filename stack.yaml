@@ -6,6 +6,8 @@ packages:
   - beeline-http-client
 
 flags:
+  beeline-routing:
+    strict: true
   beeline-http-client:
     strict: true
 

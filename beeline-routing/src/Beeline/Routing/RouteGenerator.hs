@@ -12,7 +12,7 @@ import qualified Network.HTTP.Types as HTTP
 import Shrubbery (BranchBuilder, branch, branchBuild, branchEnd, dissect)
 
 import Beeline.Routing.ParameterDefinition (ParameterDefinition (parameterRenderer))
-import Beeline.Routing.Router (Router (..))
+import qualified Beeline.Routing.Router as Router
 
 newtype RouteGenerator route = RouteGenerator
   { generateSubroute :: route -> ([Text] -> [Text]) -> (HTTP.StdMethod, Text)
@@ -22,11 +22,11 @@ generateRoute :: RouteGenerator route -> route -> (HTTP.StdMethod, Text)
 generateRoute generator route =
   generateSubroute generator route id
 
-instance Router RouteGenerator where
+instance Router.Router RouteGenerator where
   newtype RouteList RouteGenerator subRoutes
     = RouteBranches (BranchBuilder subRoutes (([Text] -> [Text]) -> (HTTP.StdMethod, Text)))
 
-  newtype RoutePieces RouteGenerator route a
+  newtype RoutePieces RouteGenerator route _a
     = RoutePieces (route -> ([Text] -> [Text]) -> (HTTP.StdMethod, Text))
 
   route = generateRouteRoute
@@ -40,15 +40,15 @@ instance Router RouteGenerator where
 
 generateRouteRoute ::
   a ->
-  RoutePieces RouteGenerator route (a -> route) ->
+  Router.RoutePieces RouteGenerator route (a -> route) ->
   RouteGenerator route
 generateRouteRoute _ (RoutePieces f) =
   RouteGenerator f
 
 generateRoutePiece ::
   Text ->
-  RoutePieces RouteGenerator route a ->
-  RoutePieces RouteGenerator route a
+  Router.RoutePieces RouteGenerator route a ->
+  Router.RoutePieces RouteGenerator route a
 generateRoutePiece pieceText (RoutePieces generateRest) =
   RoutePieces $ \route mkPath ->
     generateRest route (mkPath . (pieceText :))
@@ -56,8 +56,8 @@ generateRoutePiece pieceText (RoutePieces generateRest) =
 generateRouteParam ::
   ParameterDefinition a ->
   (route -> a) ->
-  RoutePieces RouteGenerator route (c -> route) ->
-  RoutePieces RouteGenerator route ((a -> c) -> route)
+  Router.RoutePieces RouteGenerator route (c -> route) ->
+  Router.RoutePieces RouteGenerator route ((a -> c) -> route)
 generateRouteParam paramDef accessor (RoutePieces generateRest) =
   RoutePieces $ \route mkPath ->
     let
@@ -69,7 +69,9 @@ generateRouteParam paramDef accessor (RoutePieces generateRest) =
     in
       generateRest route (mkPath . (paramText :))
 
-generateRoutePiecesEnd :: HTTP.StdMethod -> RoutePieces RouteGenerator route (route -> route)
+generateRoutePiecesEnd ::
+  HTTP.StdMethod ->
+  Router.RoutePieces RouteGenerator route (route -> route)
 generateRoutePiecesEnd method =
   RoutePieces $ \_ mkPath ->
     let
@@ -81,7 +83,7 @@ generateRoutePiecesEnd method =
 generateRoutePiecesSubRouter ::
   (route -> subroute) ->
   RouteGenerator subroute ->
-  RoutePieces RouteGenerator route ((subroute -> route) -> route)
+  Router.RoutePieces RouteGenerator route ((subroute -> route) -> route)
 generateRoutePiecesSubRouter accessor subrouter =
   RoutePieces $ \route mkPath ->
     generateSubroute subrouter (accessor route) mkPath

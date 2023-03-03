@@ -15,20 +15,20 @@ import Shrubbery (Union)
 import Shrubbery.Parser (Parser, parse, parseEnd, parseOption)
 
 import Beeline.Routing.ParameterDefinition (ParameterDefinition (parameterParser))
-import Beeline.Routing.Router (Router (..))
+import qualified Beeline.Routing.Router as Router
 
 newtype RouteRecognizer a = RouteRecognizer
   { recognizeRoute :: HTTP.StdMethod -> [Text] -> Either Text a
   }
 
-instance Router RouteRecognizer where
+instance Router.Router RouteRecognizer where
   newtype RouteList RouteRecognizer subRoutes
     = RouteParser (Parser (Either Text) (HTTP.StdMethod, [Text]) subRoutes)
 
-  data RoutePieces RouteRecognizer route a where
+  data RoutePieces RouteRecognizer _route _a where
     RoutePieces ::
       (c -> HTTP.StdMethod -> [Text] -> Either Text route) ->
-      RoutePieces RouteRecognizer route (c -> route)
+      Router.RoutePieces RouteRecognizer route (c -> route)
 
   route = recognizeRouteRoute
   piece = recognizeRoutePiece
@@ -41,7 +41,7 @@ instance Router RouteRecognizer where
 
 recognizeRouteRoute ::
   a ->
-  RoutePieces RouteRecognizer route (a -> route) ->
+  Router.RoutePieces RouteRecognizer route (a -> route) ->
   RouteRecognizer route
 recognizeRouteRoute constructor (RoutePieces recognize) =
   RouteRecognizer $ \method pathPieces ->
@@ -49,8 +49,8 @@ recognizeRouteRoute constructor (RoutePieces recognize) =
 
 recognizeRoutePiece ::
   Text ->
-  RoutePieces RouteRecognizer route a ->
-  RoutePieces RouteRecognizer route a
+  Router.RoutePieces RouteRecognizer route a ->
+  Router.RoutePieces RouteRecognizer route a
 recognizeRoutePiece expectedPiece (RoutePieces recognizeRest) =
   RoutePieces $ \constructor method path ->
     case path of
@@ -63,8 +63,8 @@ recognizeRoutePiece expectedPiece (RoutePieces recognizeRest) =
 recognizeRouteParam ::
   ParameterDefinition a ->
   (route -> a) ->
-  RoutePieces RouteRecognizer route (c -> route) ->
-  RoutePieces RouteRecognizer route ((a -> c) -> route)
+  Router.RoutePieces RouteRecognizer route (c -> route) ->
+  Router.RoutePieces RouteRecognizer route ((a -> c) -> route)
 recognizeRouteParam paramDef _ (RoutePieces recognizeRest) =
   RoutePieces $ \constructor method path ->
     case path of
@@ -75,7 +75,7 @@ recognizeRouteParam paramDef _ (RoutePieces recognizeRest) =
 
 recognizeRouteEnd ::
   HTTP.StdMethod ->
-  RoutePieces RouteRecognizer route (route -> route)
+  Router.RoutePieces RouteRecognizer route (route -> route)
 recognizeRouteEnd expectedMethod =
   RoutePieces $ \constructor method path ->
     case path of
@@ -88,15 +88,15 @@ recognizeRouteEnd expectedMethod =
 recognizeRouteSubrouter ::
   (route -> subroute) ->
   RouteRecognizer subroute ->
-  RoutePieces RouteRecognizer route ((subroute -> route) -> route)
+  Router.RoutePieces RouteRecognizer route ((subroute -> route) -> route)
 recognizeRouteSubrouter _ subrouter =
   RoutePieces $ \constructor method path ->
     constructor <$> recognizeRoute subrouter method path
 
 recognizeRouteAddRoute ::
   RouteRecognizer a ->
-  RouteList RouteRecognizer subRoutes ->
-  RouteList RouteRecognizer (a : subRoutes)
+  Router.RouteList RouteRecognizer subRoutes ->
+  Router.RouteList RouteRecognizer (a : subRoutes)
 recognizeRouteAddRoute route (RouteParser parser) =
   let
     runRecognizer (method, pathPieces) = recognizeRoute route method pathPieces
@@ -104,7 +104,7 @@ recognizeRouteAddRoute route (RouteParser parser) =
     RouteParser $ parseOption runRecognizer parser
 
 recognizeRouteRouteList ::
-  RouteList RouteRecognizer subRoutes ->
+  Router.RouteList RouteRecognizer subRoutes ->
   RouteRecognizer (Union subRoutes)
 recognizeRouteRouteList (RouteParser parser) =
   RouteRecognizer $ \method pathPieces ->

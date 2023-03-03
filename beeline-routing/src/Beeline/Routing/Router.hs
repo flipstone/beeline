@@ -4,6 +4,8 @@
 
 module Beeline.Routing.Router
   ( Router (..)
+  , (#$)
+  , (#/)
   ) where
 
 import Data.Kind (Type)
@@ -44,3 +46,13 @@ class Router r where
   routeList :: KnownLength types => RouteList r types -> r (Union types)
   addRoute :: r a -> RouteList r rest -> RouteList r (a : rest)
   emptyRoutes :: RouteList r '[]
+
+(#$) ::
+  Router r =>
+  HTTP.StdMethod ->
+  (RoutePieces r route (route -> route) -> t) ->
+  t
+(#$) method f = f (end method)
+
+(#/) :: (b -> c) -> (a -> b) -> a -> c
+(#/) = (.)
