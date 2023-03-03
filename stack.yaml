@@ -2,7 +2,12 @@ resolver: lts-20.11
 allow-different-user: true
 system-ghc: true
 packages:
-  - beeline-router
+  - beeline-routing
+  - beeline-http-client
+
+flags:
+  beeline-http-client:
+    strict: true
 
 extra-deps:
   - git: https://github.com/flipstone/shrubbery.git

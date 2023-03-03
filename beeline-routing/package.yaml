@@ -1,9 +1,9 @@
-name: beeline-router
+name: beeline-routing
 version: 0.1.0.0
 license: MIT
 author: "Flipstone Technology Partners"
 maintainer: "development@flipstone.com"
-git: "git@github.com:flipstone/beeline.git"
+github: "flipstone/beeline/beeline-routing"
 
 library:
   source-dirs: src
@@ -32,7 +32,7 @@ tests:
     main: Main.hs
     dependencies:
       - base
-      - beeline-router
+      - beeline-routing
       - hedgehog
     ghc-options:
       - -j
