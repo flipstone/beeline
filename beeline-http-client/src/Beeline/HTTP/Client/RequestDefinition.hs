@@ -124,7 +124,7 @@ decodeResponseWith coder decoder =
 defaultRequestDefinition :: RequestDefinition err () () ()
 defaultRequestDefinition =
   RequestDefinition
-    { requestRoute = R.route () (R.end HTTPTypes.GET)
+    { requestRoute = R.get (R.make ())
     , requestSchema = noRequestBody
     , responseSchemas = [(Success, noResponseBody)]
     }

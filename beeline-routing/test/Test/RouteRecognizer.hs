@@ -12,6 +12,7 @@ import qualified Hedgehog.Gen as Gen
 import qualified Hedgehog.Range as Range
 import qualified Network.HTTP.Types as HTTP
 
+import Beeline.Routing ((/+))
 import qualified Beeline.Routing as R
 import qualified Fixtures.FooBarBaz as FBB
 import Fixtures.SimpleNoArgRoute (SimpleNoArgRoute (SimpleNoArgRoute))
@@ -38,10 +39,10 @@ prop_piece =
 
     let
       recognizer =
-        R.route SimpleNoArgRoute $
-          foldr
+        R.method method $
+          foldl
             R.piece
-            (R.end method)
+            (R.make SimpleNoArgRoute)
             path
 
       result =
@@ -57,7 +58,9 @@ prop_param =
 
     let
       recognizer =
-        R.route id $ R.param textParamDef id $ R.end method
+        R.method method $
+          R.make id
+            /+ R.Param textParamDef id
 
       result =
         R.recognizeRoute recognizer method [R.parameterRenderer textParamDef param]
@@ -73,10 +76,10 @@ prop_multiParam =
 
     let
       recognizer =
-        R.route (,)
-          . R.param textParamDef fst
-          . R.param textParamDef snd
-          $ R.end method
+        R.method method $
+          R.make (,)
+            /+ R.Param textParamDef fst
+            /+ R.Param textParamDef snd
 
       result =
         R.recognizeRoute

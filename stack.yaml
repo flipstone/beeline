@@ -4,11 +4,14 @@ system-ghc: true
 packages:
   - beeline-routing
   - beeline-http-client
+  - beeline-examples
 
 flags:
   beeline-routing:
     strict: true
   beeline-http-client:
+    strict: true
+  beeline-examples:
     strict: true
 
 extra-deps:

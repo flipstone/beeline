@@ -25,73 +25,74 @@ instance Router.Router RouteRecognizer where
   newtype RouteList RouteRecognizer subRoutes
     = RouteParser (Parser (Either Text) (HTTP.StdMethod, [Text]) subRoutes)
 
-  data RoutePieces RouteRecognizer _route _a where
-    RoutePieces ::
-      (c -> HTTP.StdMethod -> [Text] -> Either Text route) ->
-      Router.RoutePieces RouteRecognizer route (c -> route)
+  data Builder RouteRecognizer _route a
+    = Builder ([Text] -> Either Text (a, [Text]))
 
-  route = recognizeRouteRoute
+  make = recognizeRouteMake
   piece = recognizeRoutePiece
   param = recognizeRouteParam
   subrouter = recognizeRouteSubrouter
-  end = recognizeRouteEnd
+  method = recognizeRouteMethod
   routeList = recognizeRouteRouteList
   addRoute = recognizeRouteAddRoute
   emptyRoutes = RouteParser parseEnd
 
-recognizeRouteRoute ::
+recognizeRouteMake ::
   a ->
-  Router.RoutePieces RouteRecognizer route (a -> route) ->
-  RouteRecognizer route
-recognizeRouteRoute constructor (RoutePieces recognize) =
-  RouteRecognizer $ \method pathPieces ->
-    recognize constructor method pathPieces
+  Router.Builder RouteRecognizer route a
+recognizeRouteMake constructor =
+  Builder $ \pieces -> Right (constructor, pieces)
 
 recognizeRoutePiece ::
+  Router.Builder RouteRecognizer route a ->
   Text ->
-  Router.RoutePieces RouteRecognizer route a ->
-  Router.RoutePieces RouteRecognizer route a
-recognizeRoutePiece expectedPiece (RoutePieces recognizeRest) =
-  RoutePieces $ \constructor method path ->
-    case path of
+  Router.Builder RouteRecognizer route a
+recognizeRoutePiece (Builder recognizePieces) expectedPiece =
+  Builder $ \pieces -> do
+    (a, remainingPieces) <- recognizePieces pieces
+    case remainingPieces of
       [] -> Left "No path left to match"
       p : ps ->
         if p == expectedPiece
-          then recognizeRest constructor method ps
+          then Right (a, ps)
           else Left "No route matched"
 
 recognizeRouteParam ::
-  ParameterDefinition a ->
-  (route -> a) ->
-  Router.RoutePieces RouteRecognizer route (c -> route) ->
-  Router.RoutePieces RouteRecognizer route ((a -> c) -> route)
-recognizeRouteParam paramDef _ (RoutePieces recognizeRest) =
-  RoutePieces $ \constructor method path ->
-    case path of
+  Router.Builder RouteRecognizer route (a -> b) ->
+  Router.Param route a ->
+  Router.Builder RouteRecognizer route b
+recognizeRouteParam (Builder recognizeF) (Router.Param paramDef _accessor) =
+  Builder $ \pieces -> do
+    (f, remainingPieces) <- recognizeF pieces
+    case remainingPieces of
       [] -> Left "No route matched"
       p : ps -> do
         param <- parameterParser paramDef p
-        recognizeRest (constructor param) method ps
+        pure (f param, ps)
 
-recognizeRouteEnd ::
+recognizeRouteMethod ::
   HTTP.StdMethod ->
-  Router.RoutePieces RouteRecognizer route (route -> route)
-recognizeRouteEnd expectedMethod =
-  RoutePieces $ \constructor method path ->
-    case path of
+  Router.Builder RouteRecognizer route a ->
+  RouteRecognizer a
+recognizeRouteMethod expectedMethod (Builder recognizePieces) =
+  RouteRecognizer $ \method pieces -> do
+    (route, remainingPieces) <- recognizePieces pieces
+    case remainingPieces of
       [] ->
         if method == expectedMethod
-          then Right constructor
+          then Right route
           else Left "Different method expected"
       _ -> Left "Path not finished"
 
 recognizeRouteSubrouter ::
-  (route -> subroute) ->
-  RouteRecognizer subroute ->
-  Router.RoutePieces RouteRecognizer route ((subroute -> route) -> route)
-recognizeRouteSubrouter _ subrouter =
-  RoutePieces $ \constructor method path ->
-    constructor <$> recognizeRoute subrouter method path
+  Router.Builder RouteRecognizer route (subroute -> route) ->
+  Router.Subrouter RouteRecognizer route subroute ->
+  RouteRecognizer route
+recognizeRouteSubrouter (Builder recognizeF) (Router.Subrouter subrouter _accessor) =
+  RouteRecognizer $ \method pieces -> do
+    (f, remainingPieces) <- recognizeF pieces
+    subroute <- recognizeRoute subrouter method remainingPieces
+    pure (f subroute)
 
 recognizeRouteAddRoute ::
   RouteRecognizer a ->

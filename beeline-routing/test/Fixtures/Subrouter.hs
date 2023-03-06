@@ -15,6 +15,7 @@ import qualified Data.Text as T
 import qualified Hedgehog as HH
 import qualified Hedgehog.Gen as Gen
 
+import Beeline.Routing ((/-), (/:), (/>))
 import qualified Beeline.Routing as R
 import qualified Shrubbery
 
@@ -42,18 +43,16 @@ rightSubroutePath =
 
 subrouter :: R.Router r => r Subroutes
 subrouter =
-  R.routeList
-    . R.addRoute
-      ( R.route LeftSubroute
-          . R.piece leftSubroutePath
-          $ R.subrouter unLeftSubroute FooBarBaz.fooBarBazRouter
-      )
-    . R.addRoute
-      ( R.route RightSubroute
-          . R.piece rightSubroutePath
-          $ R.subrouter unRightSubroute FooBarBaz.fooBarBazRouter
-      )
-    $ R.emptyRoutes
+  R.routeList $
+    ( R.make LeftSubroute
+        /- leftSubroutePath
+        /> R.Subrouter FooBarBaz.fooBarBazRouter unLeftSubroute
+    )
+      /: ( R.make RightSubroute
+            /- rightSubroutePath
+            /> R.Subrouter FooBarBaz.fooBarBazRouter unRightSubroute
+         )
+      /: R.emptyRoutes
 
 subrouteToText :: Subroutes -> T.Text
 subrouteToText =

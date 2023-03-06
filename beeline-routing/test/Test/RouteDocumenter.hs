@@ -1,7 +1,7 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Test.RouteGenerator
+module Test.RouteDocumenter
   ( tests
   ) where
 
@@ -18,13 +18,13 @@ import qualified Beeline.Routing as R
 import qualified Fixtures.FooBarBaz as FBB
 import Fixtures.SimpleNoArgRoute (SimpleNoArgRoute (SimpleNoArgRoute))
 import qualified Fixtures.Subrouter as Subrouter
-import Fixtures.TextParam (genTextParam, textParamDef)
+import Fixtures.TextParam (textParamDef)
 
 tests :: IO Bool
 tests =
   HH.checkParallel $
     HH.Group
-      "RouteGenerator"
+      "RouteDocumenter"
       [ ("piece generates the given text", prop_piece)
       , ("param renders a path parameter", prop_param)
       , ("param renders multiple path parameters", prop_multiParam)
@@ -47,17 +47,16 @@ prop_piece =
             path
 
       result =
-        R.generateRoute generator SimpleNoArgRoute
+        R.documentRoutes generator
 
       expectedText =
         "/" <> T.intercalate "/" path
 
-    result === (method, expectedText)
+    result === [(method, expectedText)]
 
 prop_param :: HH.Property
 prop_param =
   HH.property $ do
-    param <- HH.forAll genTextParam
     method <- HH.forAll genMethod
 
     let
@@ -66,15 +65,13 @@ prop_param =
           R.make id /+ R.Param textParamDef id
 
       result =
-        R.generateRoute generator param
+        R.documentRoutes generator
 
-    result === (method, "/" <> R.parameterRenderer textParamDef param)
+    result === [(method, "/{" <> R.parameterName textParamDef <> "}")]
 
 prop_multiParam :: HH.Property
 prop_multiParam =
   HH.property $ do
-    param1 <- HH.forAll genTextParam
-    param2 <- HH.forAll genTextParam
     method <- HH.forAll genMethod
 
     let
@@ -85,37 +82,45 @@ prop_multiParam =
             /+ R.Param textParamDef snd
 
       result =
-        R.generateRoute generator (param1, param2)
+        R.documentRoutes generator
 
       expectedPath =
-        "/"
-          <> R.parameterRenderer textParamDef param1
-          <> "/"
-          <> R.parameterRenderer textParamDef param2
+        "/{"
+          <> R.parameterName textParamDef
+          <> "}/{"
+          <> R.parameterName textParamDef
+          <> "}"
 
-    result === (method, expectedPath)
+    result === [(method, expectedPath)]
 
 prop_routeList :: HH.Property
 prop_routeList =
-  HH.property $ do
-    route <- HH.forAll FBB.genFooBarBaz
-
+  HH.withTests 1 . HH.property $ do
     let
       result =
-        R.generateRoute FBB.fooBarBazRouter route
+        R.documentRoutes FBB.fooBarBazRouter
 
-    result === (HTTP.GET, "/" <> FBB.fooBarBazToText route)
+    result
+      === [ (HTTP.GET, "/foo")
+          , (HTTP.GET, "/bar")
+          , (HTTP.GET, "/baz")
+          ]
 
 prop_subrouter :: HH.Property
 prop_subrouter =
-  HH.property $ do
-    route <- HH.forAll Subrouter.genSubroutes
-
+  HH.withTests 1 . HH.property $ do
     let
       result =
-        R.generateRoute Subrouter.subrouter route
+        R.documentRoutes Subrouter.subrouter
 
-    result === (HTTP.GET, "/" <> Subrouter.subrouteToText route)
+    result
+      === [ (HTTP.GET, "/left/foo")
+          , (HTTP.GET, "/left/bar")
+          , (HTTP.GET, "/left/baz")
+          , (HTTP.GET, "/right/foo")
+          , (HTTP.GET, "/right/bar")
+          , (HTTP.GET, "/right/baz")
+          ]
 
 genPathPiece :: HH.Gen Text
 genPathPiece =

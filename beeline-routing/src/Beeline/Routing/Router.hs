@@ -1,11 +1,25 @@
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeOperators #-}
 
 module Beeline.Routing.Router
   ( Router (..)
-  , (#$)
-  , (#/)
+  , Param (..)
+  , Subrouter (..)
+  , get
+  , post
+  , Beeline.Routing.Router.head
+  , put
+  , delete
+  , trace
+  , connect
+  , options
+  , patch
+  , (/-)
+  , (/+)
+  , (/>)
+  , (/:)
   ) where
 
 import Data.Kind (Type)
@@ -16,43 +30,92 @@ import Shrubbery.TypeList (KnownLength)
 import Beeline.Routing.ParameterDefinition (ParameterDefinition)
 import qualified Network.HTTP.Types as HTTP
 
+data Param route a = Param
+  { paramDefinition :: ParameterDefinition a
+  , paramAccessor :: route -> a
+  }
+
+data Subrouter r route subroute = Subrouter
+  { subrouteRouter :: r subroute
+  , subrouteAccessor :: route -> subroute
+  }
+
 class Router r where
   data RouteList r (subRoutes :: [Type]) :: Type
-  data RoutePieces r route a :: Type
+  data Builder r route a :: Type
 
-  route ::
-    a ->
-    RoutePieces r route (a -> route) ->
-    r route
+  make ::
+    a -> Builder r route a
 
   piece ::
-    Text ->
-    RoutePieces r route a ->
-    RoutePieces r route a
+    Builder r route a -> Text -> Builder r route a
 
   param ::
-    ParameterDefinition a ->
-    (route -> a) ->
-    RoutePieces r route (c -> route) ->
-    RoutePieces r route ((a -> c) -> route)
+    Builder r route (a -> b) -> Param route a -> Builder r route b
+
+  method ::
+    HTTP.StdMethod -> Builder r route route -> r route
 
   subrouter ::
-    (route -> subroute) ->
-    r subroute ->
-    RoutePieces r route ((subroute -> route) -> route)
-
-  end :: HTTP.StdMethod -> RoutePieces r route (route -> route)
+    Builder r route (subrouter -> route) -> Subrouter r route subrouter -> r route
 
   routeList :: KnownLength types => RouteList r types -> r (Union types)
   addRoute :: r a -> RouteList r rest -> RouteList r (a : rest)
   emptyRoutes :: RouteList r '[]
 
-(#$) ::
+(/-) ::
   Router r =>
-  HTTP.StdMethod ->
-  (RoutePieces r route (route -> route) -> t) ->
-  t
-(#$) method f = f (end method)
+  Builder r route a ->
+  Text ->
+  Builder r route a
+(/-) = piece
 
-(#/) :: (b -> c) -> (a -> b) -> a -> c
-(#/) = (.)
+(/+) ::
+  Router r =>
+  Builder r route (a -> b) ->
+  Param route a ->
+  Builder r route b
+(/+) = param
+
+(/>) ::
+  Router r =>
+  Builder r route (subroute -> route) ->
+  Subrouter r route subroute ->
+  r route
+(/>) = subrouter
+
+infixl 9 />
+infixl 9 /-
+infixl 9 /+
+
+(/:) :: Router r => r a -> RouteList r rest -> RouteList r (a : rest)
+(/:) = addRoute
+
+infixr 9 /:
+
+get :: Router r => Builder r route route -> r route
+get = method HTTP.GET
+
+post :: Router r => Builder r route route -> r route
+post = method HTTP.POST
+
+head :: Router r => Builder r route route -> r route
+head = method HTTP.HEAD
+
+put :: Router r => Builder r route route -> r route
+put = method HTTP.PUT
+
+delete :: Router r => Builder r route route -> r route
+delete = method HTTP.DELETE
+
+trace :: Router r => Builder r route route -> r route
+trace = method HTTP.TRACE
+
+connect :: Router r => Builder r route route -> r route
+connect = method HTTP.CONNECT
+
+options :: Router r => Builder r route route -> r route
+options = method HTTP.OPTIONS
+
+patch :: Router r => Builder r route route -> r route
+patch = method HTTP.PATCH

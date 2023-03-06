@@ -5,7 +5,7 @@ cabal-version: 1.12
 -- see: https://github.com/sol/hpack
 
 name:           beeline-routing
-version:        0.1.0.0
+version:        0.2.0.0
 homepage:       https://github.com/flipstone/beeline#readme
 bug-reports:    https://github.com/flipstone/beeline/issues
 author:         Flipstone Technology Partners
@@ -38,6 +38,7 @@ library
   build-depends:
       attoparsec
     , base
+    , dlist
     , http-types
     , shrubbery
     , text
@@ -55,6 +56,7 @@ test-suite spec
       Fixtures.SimpleNoArgRoute
       Fixtures.Subrouter
       Fixtures.TextParam
+      Test.RouteDocumenter
       Test.RouteGenerator
       Test.RouteRecognizer
       Paths_beeline_routing

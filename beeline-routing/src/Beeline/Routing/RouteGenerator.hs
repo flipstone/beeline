@@ -6,6 +6,7 @@ module Beeline.Routing.RouteGenerator
   , generateRoute
   ) where
 
+import qualified Data.DList as DList
 import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Network.HTTP.Types as HTTP
@@ -14,52 +15,59 @@ import Shrubbery (BranchBuilder, branch, branchBuild, branchEnd, dissect)
 import Beeline.Routing.ParameterDefinition (ParameterDefinition (parameterRenderer))
 import qualified Beeline.Routing.Router as Router
 
+type PieceList = DList.DList Text
+
 newtype RouteGenerator route = RouteGenerator
-  { generateSubroute :: route -> ([Text] -> [Text]) -> (HTTP.StdMethod, Text)
+  { generateSubroute :: route -> (HTTP.StdMethod, PieceList)
   }
 
 generateRoute :: RouteGenerator route -> route -> (HTTP.StdMethod, Text)
 generateRoute generator route =
-  generateSubroute generator route id
+  let
+    (method, pieces) =
+      generateSubroute generator route
+
+    path =
+      "/" <> T.intercalate "/" (DList.toList pieces)
+  in
+    (method, path)
 
 instance Router.Router RouteGenerator where
   newtype RouteList RouteGenerator subRoutes
-    = RouteBranches (BranchBuilder subRoutes (([Text] -> [Text]) -> (HTTP.StdMethod, Text)))
+    = RouteBranches (BranchBuilder subRoutes (HTTP.StdMethod, PieceList))
 
-  newtype RoutePieces RouteGenerator route _a
-    = RoutePieces (route -> ([Text] -> [Text]) -> (HTTP.StdMethod, Text))
+  newtype Builder RouteGenerator route _a
+    = Builder (route -> PieceList)
 
-  route = generateRouteRoute
+  make = generateRouteMake
   piece = generateRoutePiece
   param = generateRouteParam
-  end = generateRoutePiecesEnd
-  subrouter = generateRoutePiecesSubRouter
+  method = generateBuilderMethod
+  subrouter = generateBuilderSubRouter
   routeList (RouteBranches branches) = RouteGenerator (dissect (branchBuild branches))
   addRoute (RouteGenerator route) (RouteBranches branches) = RouteBranches $ branch route branches
   emptyRoutes = RouteBranches branchEnd
 
-generateRouteRoute ::
+generateRouteMake ::
   a ->
-  Router.RoutePieces RouteGenerator route (a -> route) ->
-  RouteGenerator route
-generateRouteRoute _ (RoutePieces f) =
-  RouteGenerator f
+  Router.Builder RouteGenerator route a
+generateRouteMake _constructor =
+  Builder $ \_route -> DList.empty
 
 generateRoutePiece ::
+  Router.Builder RouteGenerator route a ->
   Text ->
-  Router.RoutePieces RouteGenerator route a ->
-  Router.RoutePieces RouteGenerator route a
-generateRoutePiece pieceText (RoutePieces generateRest) =
-  RoutePieces $ \route mkPath ->
-    generateRest route (mkPath . (pieceText :))
+  Router.Builder RouteGenerator route a
+generateRoutePiece (Builder generatePrior) pieceText =
+  Builder $ \route ->
+    DList.snoc (generatePrior route) pieceText
 
 generateRouteParam ::
-  ParameterDefinition a ->
-  (route -> a) ->
-  Router.RoutePieces RouteGenerator route (c -> route) ->
-  Router.RoutePieces RouteGenerator route ((a -> c) -> route)
-generateRouteParam paramDef accessor (RoutePieces generateRest) =
-  RoutePieces $ \route mkPath ->
+  Router.Builder RouteGenerator route (a -> b) ->
+  Router.Param route a ->
+  Router.Builder RouteGenerator route b
+generateRouteParam (Builder generatePrior) (Router.Param paramDef accessor) =
+  Builder $ \route ->
     let
       param =
         accessor route
@@ -67,23 +75,32 @@ generateRouteParam paramDef accessor (RoutePieces generateRest) =
       paramText =
         parameterRenderer paramDef param
     in
-      generateRest route (mkPath . (paramText :))
+      DList.snoc (generatePrior route) paramText
 
-generateRoutePiecesEnd ::
+generateBuilderMethod ::
   HTTP.StdMethod ->
-  Router.RoutePieces RouteGenerator route (route -> route)
-generateRoutePiecesEnd method =
-  RoutePieces $ \_ mkPath ->
+  Router.Builder RouteGenerator route route ->
+  RouteGenerator route
+generateBuilderMethod method (Builder buildRoute) =
+  RouteGenerator $ \route ->
     let
-      pathParts =
-        mkPath []
+      pieces = buildRoute route
     in
-      (method, "/" <> T.intercalate "/" pathParts)
+      (method, pieces)
 
-generateRoutePiecesSubRouter ::
-  (route -> subroute) ->
-  RouteGenerator subroute ->
-  Router.RoutePieces RouteGenerator route ((subroute -> route) -> route)
-generateRoutePiecesSubRouter accessor subrouter =
-  RoutePieces $ \route mkPath ->
-    generateSubroute subrouter (accessor route) mkPath
+generateBuilderSubRouter ::
+  Router.Builder RouteGenerator route (subroute -> route) ->
+  Router.Subrouter RouteGenerator route subrouter ->
+  RouteGenerator route
+generateBuilderSubRouter (Builder generate) (Router.Subrouter subrouter accessor) =
+  RouteGenerator $ \route ->
+    let
+      pieces =
+        generate route
+
+      (method, subroutePieces) =
+        generateSubroute
+          subrouter
+          (accessor route)
+    in
+      (method, pieces <> subroutePieces)

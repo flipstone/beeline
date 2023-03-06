@@ -24,6 +24,7 @@ import qualified Network.Wai.Handler.Warp as Warp
 import qualified System.Random as Rand
 
 import qualified Beeline.HTTP.Client as BHC
+import Beeline.Routing ((/+), (/-))
 import qualified Beeline.Routing as R
 
 main :: IO ()
@@ -46,6 +47,10 @@ tests =
 newtype FooBarId
   = FooBarId Int
 
+data GetFooBar = GetFooBar
+  { fooBarId :: FooBarId
+  }
+
 fooBarIdParam :: R.ParameterDefinition FooBarId
 fooBarIdParam =
   R.coerceParam (R.integralParam "fooBarId" :: R.ParameterDefinition Int)
@@ -53,17 +58,16 @@ fooBarIdParam =
 getFooBar ::
   BHC.RequestDefinition
     BHC.ContentTypeDecodingError
-    FooBarId
+    GetFooBar
     ()
     T.Text
 getFooBar =
   BHC.defaultRequestDefinition
     { BHC.requestRoute =
-        R.route id
-          . R.piece "foobars"
-          . R.param fooBarIdParam id
-          . R.end
-          $ HTTPTypes.GET
+        R.get $
+          R.make GetFooBar
+            /- "foobars"
+            /+ R.Param fooBarIdParam fooBarId
     , BHC.responseSchemas =
         [ (BHC.Success, BHC.decodeResponseWith BHC.PlainText BHC.UTF8)
         ]
@@ -94,7 +98,7 @@ prop_httpGet =
             request = HTTP.defaultRequest {HTTP.port = port}
 
           manager <- HTTP.newManager HTTP.defaultManagerSettings
-          BHC.httpRequestThrow getFooBar (FooBarId 1) () request manager
+          BHC.httpRequestThrow getFooBar (GetFooBar $ FooBarId 1) () request manager
 
       response <- HH.evalIO (withTestServer handleRequest issueRequest)
       response === expectedResponse
@@ -107,7 +111,7 @@ postText ::
     T.Text
 postText =
   BHC.defaultRequestDefinition
-    { BHC.requestRoute = R.route () $ R.end HTTPTypes.POST
+    { BHC.requestRoute = R.post (R.make ())
     , BHC.requestSchema = BHC.encodeRequestWith BHC.PlainText BHC.UTF8
     , BHC.responseSchemas =
         [ (BHC.Success, BHC.decodeResponseWith BHC.PlainText BHC.UTF8)
@@ -155,7 +159,7 @@ postNoResponse ::
     ()
 postNoResponse =
   BHC.defaultRequestDefinition
-    { BHC.requestRoute = R.route () $ R.end HTTPTypes.POST
+    { BHC.requestRoute = R.post (R.make ())
     , BHC.requestSchema = BHC.encodeRequestWith BHC.PlainText BHC.UTF8
     }
 
@@ -197,7 +201,7 @@ postBytes ::
     BS.ByteString
 postBytes =
   BHC.defaultRequestDefinition
-    { BHC.requestRoute = R.route () $ R.end HTTPTypes.POST
+    { BHC.requestRoute = R.post (R.make ())
     , BHC.requestSchema = BHC.encodeRequestWith BHC.OctetStream BHC.Bytes
     , BHC.responseSchemas =
         [ (BHC.Success, BHC.decodeResponseWith BHC.OctetStream BHC.Bytes)
@@ -305,7 +309,7 @@ prop_unexpectedStatus =
           request = HTTP.defaultRequest {HTTP.port = port}
 
         manager <- HTTP.newManager HTTP.defaultManagerSettings
-        Exc.try $ BHC.httpRequestThrow getFooBar (FooBarId 1) () request manager
+        Exc.try $ BHC.httpRequestThrow getFooBar (GetFooBar $ FooBarId 1) () request manager
 
     exceptionOrFooBar <- HH.evalIO (withTestServer handleRequest issueRequest)
     case exceptionOrFooBar of
@@ -331,7 +335,7 @@ prop_decodingFailure =
           request = HTTP.defaultRequest {HTTP.port = port}
 
         manager <- HTTP.newManager HTTP.defaultManagerSettings
-        Exc.try $ BHC.httpRequestThrow getFooBar (FooBarId 1) () request manager
+        Exc.try $ BHC.httpRequestThrow getFooBar (GetFooBar $ FooBarId 1) () request manager
 
     exceptionOrFooBar <- HH.evalIO (withTestServer handleRequest issueRequest)
     case exceptionOrFooBar of

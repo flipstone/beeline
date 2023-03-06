@@ -4,84 +4,94 @@
 
 module Beeline.Routing.RouteDocumenter
   ( RouteDocumenter (..)
-  , documentRoute
+  , documentRoutes
   ) where
 
+import qualified Data.DList as DList
 import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Network.HTTP.Types as HTTP
-import Shrubbery (BranchBuilder, branch, branchBuild, branchEnd, dissect)
 
 import Beeline.Routing.ParameterDefinition (ParameterDefinition (parameterName))
 import qualified Beeline.Routing.Router as Router
 
+type PieceList = DList.DList Text
+
 newtype RouteDocumenter route = RouteDocumenter
-  { documentSubroute :: route -> ([Text] -> [Text]) -> (HTTP.StdMethod, Text)
+  { documentSubroutes :: [(HTTP.StdMethod, PieceList)]
   }
 
-documentRoute :: RouteDocumenter route -> route -> (HTTP.StdMethod, Text)
-documentRoute documenter route =
-  documentSubroute documenter route id
+documentRoutes :: RouteDocumenter route -> [(HTTP.StdMethod, Text)]
+documentRoutes documenter =
+  let
+    mkPath (method, pieces) =
+      (method, "/" <> T.intercalate "/" (DList.toList pieces))
+  in
+    map mkPath (documentSubroutes documenter)
 
 instance Router.Router RouteDocumenter where
-  newtype RouteList RouteDocumenter subRoutes
-    = RouteBranches (BranchBuilder subRoutes (([Text] -> [Text]) -> (HTTP.StdMethod, Text)))
+  newtype RouteList RouteDocumenter _subRoutes
+    = RouteBranches [(HTTP.StdMethod, PieceList)]
 
-  newtype RoutePieces RouteDocumenter route _a
-    = RoutePieces (route -> ([Text] -> [Text]) -> (HTTP.StdMethod, Text))
+  newtype Builder RouteDocumenter _route _a
+    = Builder PieceList
 
-  route = documentRouteRoute
+  make = documentRouteMake
   piece = documentRoutePiece
   param = documentRouteParam
-  end = documentRouteEnd
+  method = documentRouteMethod
   subrouter = documentRouteSubrouter
-  routeList (RouteBranches branches) = RouteDocumenter (dissect (branchBuild branches))
-  addRoute (RouteDocumenter route) (RouteBranches branches) = RouteBranches $ branch route branches
-  emptyRoutes = RouteBranches branchEnd
+  routeList (RouteBranches branches) =
+    RouteDocumenter branches
 
-documentRouteRoute ::
+  addRoute (RouteDocumenter routes) (RouteBranches branchesRoutes) =
+    RouteBranches $ routes <> branchesRoutes
+  emptyRoutes = RouteBranches []
+
+documentRouteMake ::
   a ->
-  Router.RoutePieces RouteDocumenter route (a -> route) ->
-  RouteDocumenter route
-documentRouteRoute _ (RoutePieces document) =
-  RouteDocumenter document
+  Router.Builder RouteDocumenter route a
+documentRouteMake _constructor =
+  Builder DList.empty
 
 documentRoutePiece ::
+  Router.Builder RouteDocumenter route a ->
   Text ->
-  Router.RoutePieces RouteDocumenter route a ->
-  Router.RoutePieces RouteDocumenter route a
-documentRoutePiece pieceText (RoutePieces documentRest) =
-  RoutePieces $ \route mkPath ->
-    documentRest route (mkPath . (pieceText :))
+  Router.Builder RouteDocumenter route a
+documentRoutePiece (Builder pieces) pieceText =
+  Builder $
+    DList.snoc pieces pieceText
 
 documentRouteParam ::
-  ParameterDefinition param ->
-  (route -> param) ->
-  Router.RoutePieces RouteDocumenter route (constructor -> route) ->
-  Router.RoutePieces RouteDocumenter route ((param -> constructor) -> route)
-documentRouteParam paramDef _ (RoutePieces documentRest) =
-  RoutePieces $ \route mkPath ->
+  Router.Builder RouteDocumenter route (param -> a) ->
+  Router.Param route param ->
+  Router.Builder RouteDocumenter route a
+documentRouteParam (Builder pieces) (Router.Param paramDef _) =
+  Builder $
     let
       paramText =
         "{" <> parameterName paramDef <> "}"
     in
-      documentRest route (mkPath . (paramText :))
+      DList.snoc pieces paramText
 
-documentRouteEnd ::
+documentRouteMethod ::
   HTTP.StdMethod ->
-  Router.RoutePieces RouteDocumenter route (route -> route)
-documentRouteEnd method =
-  RoutePieces $ \_ mkPath ->
-    let
-      pathParts =
-        mkPath []
-    in
-      (method, "/" <> T.intercalate "/" pathParts)
+  Router.Builder RouteDocumenter route route ->
+  RouteDocumenter route
+documentRouteMethod method (Builder pieces) =
+  RouteDocumenter [(method, pieces)]
 
 documentRouteSubrouter ::
-  (route -> subroute) ->
-  RouteDocumenter subroute ->
-  Router.RoutePieces RouteDocumenter route ((subroute -> route) -> route)
-documentRouteSubrouter accessor subdocumentor =
-  RoutePieces $ \route mkPath ->
-    documentSubroute subdocumentor (accessor route) mkPath
+  Router.Builder RouteDocumenter route (subroute -> route) ->
+  Router.Subrouter RouteDocumenter route subroute ->
+  RouteDocumenter route
+documentRouteSubrouter (Builder pieces) (Router.Subrouter subrouter _accessor) =
+  RouteDocumenter $
+    let
+      subroutes =
+        documentSubroutes subrouter
+
+      prependPieces (method, rest) =
+        (method, pieces <> rest)
+    in
+      map prependPieces subroutes

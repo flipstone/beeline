@@ -1,5 +1,5 @@
 name: beeline-routing
-version: 0.1.0.0
+version: 0.2.0.0
 license: MIT
 author: "Flipstone Technology Partners"
 maintainer: "development@flipstone.com"
@@ -43,6 +43,7 @@ library:
     - Beeline.Routing.RouteRecognizer
   dependencies:
     - attoparsec
+    - dlist
 
 dependencies:
   - base

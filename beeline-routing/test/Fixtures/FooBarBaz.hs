@@ -15,9 +15,9 @@ module Fixtures.FooBarBaz
 import Data.Text (Text)
 import qualified Hedgehog as HH
 import qualified Hedgehog.Gen as Gen
-import qualified Network.HTTP.Types as HTTP
 import qualified Shrubbery as Shrubbery
 
+import Beeline.Routing ((/-), (/:))
 import qualified Beeline.Routing as R
 
 data Foo = Foo deriving (Show)
@@ -41,11 +41,11 @@ handleFooBarBaz foo bar baz =
 
 fooBarBazRouter :: R.Router r => r FooBarBaz
 fooBarBazRouter =
-  R.routeList
-    . R.addRoute (R.route Foo $ R.piece "foo" $ R.end HTTP.GET)
-    . R.addRoute (R.route Bar $ R.piece "bar" $ R.end HTTP.GET)
-    . R.addRoute (R.route Baz $ R.piece "baz" $ R.end HTTP.GET)
-    $ R.emptyRoutes
+  R.routeList $
+    R.get (R.make Foo /- "foo")
+      /: R.get (R.make Bar /- "bar")
+      /: R.get (R.make Baz /- "baz")
+      /: R.emptyRoutes
 
 genFooBarBaz :: HH.Gen FooBarBaz
 genFooBarBaz =
