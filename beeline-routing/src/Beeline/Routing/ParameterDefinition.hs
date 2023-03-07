@@ -8,11 +8,13 @@ module Beeline.Routing.ParameterDefinition
   , int16Param
   , int32Param
   , int64Param
+  , booleanParam
   , coerceParam
   , convertParam
   , parsedParam
   ) where
 
+import Control.Applicative ((<|>))
 import Control.Monad ((<=<))
 import qualified Data.Attoparsec.Text as Atto
 import qualified Data.Bifunctor as Bifunctor
@@ -38,34 +40,6 @@ textParam name =
     , parameterRenderer = id
     }
 
-coerceParam :: Coercible a b => ParameterDefinition b -> ParameterDefinition a
-coerceParam =
-  convertParam (Right . coerce) coerce
-
-parsedParam ::
-  Text ->
-  Atto.Parser param ->
-  (param -> Text) ->
-  ParameterDefinition param
-parsedParam name attoParser renderer =
-  let
-    parser =
-      Bifunctor.first T.pack
-        . Atto.parseOnly (attoParser <* Atto.endOfInput)
-  in
-    ParameterDefinition
-      { parameterName = name
-      , parameterParser = parser
-      , parameterRenderer = renderer
-      }
-
-integralParam :: Integral n => Text -> ParameterDefinition n
-integralParam name =
-  parsedParam
-    name
-    (Atto.signed Atto.decimal)
-    (LT.toStrict . LTB.toLazyText . LTBI.decimal)
-
 integerParam :: Text -> ParameterDefinition Integer
 integerParam =
   integralParam
@@ -89,6 +63,50 @@ int32Param =
 int64Param :: Text -> ParameterDefinition Int64
 int64Param =
   integralParam
+
+booleanParam :: Text -> ParameterDefinition Bool
+booleanParam name =
+  let
+    trueText = T.pack "true"
+    falseText = T.pack "false"
+    parseTrue = Atto.asciiCI trueText *> pure True
+    parseFalse = Atto.asciiCI falseText *> pure False
+    parseBool = parseTrue <|> parseFalse
+
+    renderBool bool =
+      case bool of
+        True -> trueText
+        False -> falseText
+  in
+    parsedParam name parseBool renderBool
+
+integralParam :: Integral n => Text -> ParameterDefinition n
+integralParam name =
+  parsedParam
+    name
+    (Atto.signed Atto.decimal)
+    (LT.toStrict . LTB.toLazyText . LTBI.decimal)
+
+coerceParam :: Coercible a b => ParameterDefinition b -> ParameterDefinition a
+coerceParam =
+  convertParam (Right . coerce) coerce
+
+parsedParam ::
+  Text ->
+  Atto.Parser param ->
+  (param -> Text) ->
+  ParameterDefinition param
+parsedParam name attoParser renderer =
+  let
+    parser =
+      Bifunctor.first T.pack
+        . Atto.parseOnly (attoParser <* Atto.endOfInput)
+  in
+    ParameterDefinition
+      { parameterName = name
+      , parameterParser = parser
+      , parameterRenderer = renderer
+      }
 
 convertParam ::
   (a -> Either Text b) ->
