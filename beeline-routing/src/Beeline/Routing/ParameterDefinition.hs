@@ -9,6 +9,7 @@ module Beeline.Routing.ParameterDefinition
   , int32Param
   , int64Param
   , booleanParam
+  , boundedEnumParam
   , coerceParam
   , convertParam
   , parsedParam
@@ -20,6 +21,7 @@ import qualified Data.Attoparsec.Text as Atto
 import qualified Data.Bifunctor as Bifunctor
 import Data.Coerce (Coercible, coerce)
 import Data.Int (Int16, Int32, Int64, Int8)
+import qualified Data.Map.Strict as Map
 import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Text.Lazy as LT
@@ -79,6 +81,25 @@ booleanParam name =
         False -> falseText
   in
     parsedParam name parseBool renderBool
+
+boundedEnumParam ::
+  (Enum a, Bounded a) =>
+  (a -> T.Text) ->
+  Text ->
+  ParameterDefinition a
+boundedEnumParam toText =
+  let
+    parsingMap =
+      Map.fromList
+        . map (\enum -> (toText enum, enum))
+        $ [minBound .. maxBound]
+
+    parseEnum text =
+      case Map.lookup text parsingMap of
+        Just enum -> Right enum
+        Nothing -> Left (T.pack "Invalid enum value: " <> text)
+  in
+    convertParam parseEnum toText . textParam
 
 integralParam :: Integral n => Text -> ParameterDefinition n
 integralParam name =
