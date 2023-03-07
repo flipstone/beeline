@@ -1,5 +1,5 @@
 name:                beeline-examples
-version:             0.2.0.0
+version:             0.2.1.0
 github:              "flipstone/beeline/beeline-examples"
 license:             BSD3
 author:              "Author name here"
@@ -18,7 +18,7 @@ description:         Please see the README on GitHub at <https://github.com/gith
 dependencies:
 - base >= 4.7 && < 5
 - shrubbery >= 0.1 && < 0.2
-- beeline-routing >= 0.2 && < 0.3
+- beeline-routing >= 0.2.1 && < 0.3
 
 flags:
   strict:
