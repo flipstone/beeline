@@ -50,7 +50,7 @@ newtype ShipmentItemRoute = ShipmentItemRoute
 
 shipmentIdParam :: R.ParameterDefinition ShipmentId
 shipmentIdParam =
-  R.coerceParam (R.integralParam "shipmentId" :: R.ParameterDefinition Int)
+  R.coerceParam (R.intParam "shipmentId")
 
 shipmentRouter :: R.Router r => r ShipmentRoutes
 shipmentRouter =
@@ -107,7 +107,7 @@ data DeleteItem = DeleteItem
 
 itemIdParam :: R.ParameterDefinition ItemId
 itemIdParam =
-  R.coerceParam (R.integralParam "itemId" :: R.ParameterDefinition Int)
+  R.coerceParam (R.intParam "itemId")
 
 itemRouter :: R.Router r => r ItemRoutes
 itemRouter =

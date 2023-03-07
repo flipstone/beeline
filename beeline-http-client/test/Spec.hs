@@ -53,7 +53,7 @@ data GetFooBar = GetFooBar
 
 fooBarIdParam :: R.ParameterDefinition FooBarId
 fooBarIdParam =
-  R.coerceParam (R.integralParam "fooBarId" :: R.ParameterDefinition Int)
+  R.coerceParam (R.intParam "fooBarId")
 
 getFooBar ::
   BHC.RequestDefinition
