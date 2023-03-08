@@ -8,6 +8,7 @@ module Beeline.HTTP.Client.QuerySchema
       , required
       , optional
       , explodedArray
+      , explodedNonEmpty
       )
   , (?+)
   , QueryEncoder (..)
@@ -22,6 +23,7 @@ import qualified Beeline.Routing as R
 import qualified Data.ByteString as BS
 import qualified Data.DList as DList
 import Data.Kind (Type)
+import qualified Data.List.NonEmpty as NEL
 import qualified Data.Map.Strict as Map
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as Enc
@@ -45,10 +47,19 @@ class QuerySchema q where
     QueryParam q query param
 
   optional ::
-    (query -> Maybe param) -> R.ParameterDefinition param -> QueryParam q query (Maybe param)
+    (query -> Maybe param) ->
+    R.ParameterDefinition param ->
+    QueryParam q query (Maybe param)
 
   explodedArray ::
-    (query -> [param]) -> R.ParameterDefinition param -> QueryParam q query [param]
+    (query -> [param]) ->
+    R.ParameterDefinition param ->
+    QueryParam q query [param]
+
+  explodedNonEmpty ::
+    (query -> NEL.NonEmpty param) ->
+    R.ParameterDefinition param ->
+    QueryParam q query (NEL.NonEmpty param)
 
 (?+) ::
   QuerySchema q =>
@@ -98,6 +109,9 @@ instance QuerySchema QueryEncoder where
 
   explodedArray accessor paramDef =
     EncodeParam (foldMap (encodeParam paramDef) . accessor)
+
+  explodedNonEmpty accessor paramDef =
+    EncodeParam (foldMap (encodeParam paramDef) . NEL.toList . accessor)
 
 encodeParam :: R.ParameterDefinition param -> param -> QueryBuilder
 encodeParam paramDef value =
@@ -183,13 +197,34 @@ instance QuerySchema QueryDecoder where
       paramNameBytes =
         Enc.encodeUtf8 (R.parameterName paramDef)
     in
+      DecodeParam (decodeListParam paramNameBytes paramDef)
+
+  explodedNonEmpty _accessor paramDef =
+    let
+      paramName =
+        R.parameterName paramDef
+
+      paramNameBytes =
+        Enc.encodeUtf8 paramName
+    in
       DecodeParam $ \query -> do
-        case Map.lookup paramNameBytes query of
-          Nothing -> Right []
-          Just values -> fmap DList.toList (traverse (decodeParam paramDef) values)
+        list <- decodeListParam paramNameBytes paramDef query
+        case NEL.nonEmpty list of
+          Just nonEmptyList -> Right nonEmptyList
+          Nothing -> Left $ T.pack "Required query param missing: " <> paramName
 
 decodeParam :: R.ParameterDefinition param -> BS.ByteString -> Either T.Text param
 decodeParam paramDef value =
   case Enc.decodeUtf8' value of
     Left err -> Left . T.pack . show $ err
     Right text -> R.parameterParser paramDef text
+
+decodeListParam ::
+  BS.ByteString ->
+  R.ParameterDefinition param ->
+  QueryMap ->
+  Either T.Text [param]
+decodeListParam paramNameBytes paramDef query =
+  case Map.lookup paramNameBytes query of
+    Nothing -> Right []
+    Just values -> fmap DList.toList (traverse (decodeParam paramDef) values)
