@@ -29,7 +29,8 @@ module Beeline.HTTP.Client.Operation
   , NoQueryParams (NoQueryParams)
   , noQueryParams
   , StatusRange
-    ( Status
+    ( AnyStatus
+    , Status
     , Informational
     , Success
     , Redirect
@@ -92,7 +93,8 @@ requestBody coder encoder =
     }
 
 data StatusRange
-  = Status Int
+  = AnyStatus
+  | Status Int
   | Informational
   | Success
   | Redirect
@@ -102,6 +104,7 @@ data StatusRange
 checkStatus :: StatusRange -> HTTPTypes.Status -> Bool
 checkStatus range status =
   case range of
+    AnyStatus -> True
     Status code -> HTTPTypes.statusCode status == code
     Informational -> HTTPTypes.statusIsInformational status
     Success -> HTTPTypes.statusIsSuccessful status

@@ -14,7 +14,7 @@ import qualified Network.HTTP.Types as HTTPTypes
 
 import Beeline.HTTP.Client.Operation
   ( Operation
-  , StatusRange (ClientError, Informational, Redirect, ServerError, Status, Success)
+  , StatusRange (AnyStatus, ClientError, Informational, Redirect, ServerError, Status, Success)
   , checkStatus
   , encodeRequestBody
   , parseHTTPResponse
@@ -159,3 +159,4 @@ includeHeadersInRequest range =
     Redirect -> False
     ClientError -> False
     ServerError -> False
+    AnyStatus -> False
