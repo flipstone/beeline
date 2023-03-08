@@ -12,20 +12,21 @@ import qualified Data.Text.Encoding as Enc
 import qualified Network.HTTP.Client as HTTP
 import qualified Network.HTTP.Types as HTTPTypes
 
-import qualified Beeline.Routing as R
-
-import Beeline.HTTP.Client.RequestDefinition
-  ( RequestDefinition
+import Beeline.HTTP.Client.Operation
+  ( Operation
   , StatusRange (ClientError, Informational, Redirect, ServerError, Status, Success)
   , checkStatus
   , encodeRequestBody
   , parseHTTPResponse
+  , requestBodySchema
+  , requestBodySchemaHeaders
+  , requestQuerySchema
   , requestRoute
-  , requestSchema
-  , requestSchemaHeaders
   , responseSchemaRequestHeaders
   , responseSchemas
   )
+import Beeline.HTTP.Client.QuerySchema (encodeQuery)
+import qualified Beeline.Routing as R
 
 data StatusResult unexpectedStatusBody err response
   = ExpectedStatus HTTP.Request (HTTP.Response ()) (Either err response)
@@ -33,9 +34,10 @@ data StatusResult unexpectedStatusBody err response
 
 httpRequestThrow ::
   Exc.Exception err =>
-  RequestDefinition err route request response ->
+  Operation err route query requestBody response ->
   route ->
-  request ->
+  query ->
+  requestBody ->
   HTTP.Request ->
   HTTP.Manager ->
   IO response
@@ -59,9 +61,10 @@ httpRequestThrow =
     httpRequestHandleResult throwErrors
 
 httpRequest ::
-  RequestDefinition err route request response ->
+  Operation err route query requestBody response ->
   route ->
-  request ->
+  query ->
+  requestBody ->
   HTTP.Request ->
   HTTP.Manager ->
   IO (StatusResult () err response)
@@ -79,22 +82,26 @@ httpRequest =
 
 httpRequestHandleResult ::
   (StatusResult HTTP.BodyReader err response -> IO result) ->
-  RequestDefinition err route request response ->
+  Operation err route query requestBody response ->
   route ->
-  request ->
+  query ->
+  requestBody ->
   HTTP.Request ->
   HTTP.Manager ->
   IO result
-httpRequestHandleResult handleResult definition routeValue requestValue incompleteRequest manager =
+httpRequestHandleResult handleResult definition routeValue queryValue requestValue incompleteRequest manager =
   let
-    rqSchema =
-      requestSchema definition
+    querySchema =
+      requestQuerySchema definition
+
+    rqBodySchema =
+      requestBodySchema definition
 
     rspSchemas =
       responseSchemas definition
 
     body =
-      encodeRequestBody rqSchema requestValue
+      encodeRequestBody rqBodySchema requestValue
 
     responseSchemaHeaders (range, schema) =
       if includeHeadersInRequest range
@@ -104,7 +111,7 @@ httpRequestHandleResult handleResult definition routeValue requestValue incomple
     headers =
       concat
         [ HTTP.requestHeaders incompleteRequest
-        , requestSchemaHeaders rqSchema
+        , requestBodySchemaHeaders rqBodySchema
         , foldMap responseSchemaHeaders rspSchemas
         ]
 
@@ -115,6 +122,7 @@ httpRequestHandleResult handleResult definition routeValue requestValue incomple
       incompleteRequest
         { HTTP.method = HTTPTypes.renderStdMethod method
         , HTTP.path = Enc.encodeUtf8 path
+        , HTTP.queryString = encodeQuery querySchema queryValue
         , HTTP.requestBody = body
         , HTTP.requestHeaders = headers
         }

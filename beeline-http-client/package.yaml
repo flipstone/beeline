@@ -1,5 +1,5 @@
 name:                beeline-http-client
-version:             0.2.0.0
+version:             0.3.0.0
 github:              "flipstone/beeline/beeline-http-client"
 license:             BSD3
 author:              "Author name here"
@@ -56,7 +56,11 @@ library:
     - Beeline.HTTP.Client
     - Beeline.HTTP.Client.Body
     - Beeline.HTTP.Client.ContentType
-    - Beeline.HTTP.Client.RequestDefinition
+    - Beeline.HTTP.Client.QuerySchema
+    - Beeline.HTTP.Client.Operation
+  dependencies:
+    - dlist >= 1.0 && < 2.0
+    - containers >= 0.6 &&  < 0.7
 
 tests:
   beeline-http-client-test:

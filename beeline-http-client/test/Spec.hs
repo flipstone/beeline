@@ -8,8 +8,10 @@ import qualified Control.Concurrent as Conc
 import qualified Control.Concurrent.MVar as MVar
 import qualified Control.Exception as Exc
 import qualified Data.ByteString as BS
+import qualified Data.ByteString.Char8 as BS8
 import qualified Data.ByteString.Lazy as LBS
 import qualified Data.IORef as IORef
+import Data.Maybe (isJust)
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as Enc
 import Hedgehog ((===))
@@ -23,6 +25,7 @@ import qualified Network.Wai as Wai
 import qualified Network.Wai.Handler.Warp as Warp
 import qualified System.Random as Rand
 
+import Beeline.HTTP.Client ((?+))
 import qualified Beeline.HTTP.Client as BHC
 import Beeline.Routing ((/+), (/-))
 import qualified Beeline.Routing as R
@@ -39,9 +42,13 @@ tests =
   , ("prop_httpPostText", prop_httpPostText)
   , ("prop_httpPostNoResponse", prop_httpPostNoResponse)
   , ("prop_httpPostBytes", prop_httpPostBytes)
-  , ("prop_multiResponse", prop_multiResponse)
-  , ("prop_unexpectedStatus", prop_unexpectedStatus)
-  , ("prop_decodingFailure", prop_decodingFailure)
+  , ("prop_httpMultiResponse", prop_httpMultiResponse)
+  , ("prop_httpUnexpectedStatus", prop_httpUnexpectedStatus)
+  , ("prop_httpDecodingFailure", prop_httpDecodingFailure)
+  , ("prop_httpGetQueryParams", prop_httpGetQueryParams)
+  , ("prop_queryParamsRequired", prop_queryParamsRequired)
+  , ("prop_queryParamsOptional", prop_queryParamsOptional)
+  , ("prop_queryParamsExplodedArray", prop_queryParamsExplodedArray)
   ]
 
 newtype FooBarId
@@ -56,20 +63,21 @@ fooBarIdParam =
   R.coerceParam (R.intParam "fooBarId")
 
 getFooBar ::
-  BHC.RequestDefinition
+  BHC.Operation
     BHC.ContentTypeDecodingError
     GetFooBar
-    ()
+    BHC.NoQueryParams
+    BHC.NoRequestBody
     T.Text
 getFooBar =
-  BHC.defaultRequestDefinition
+  BHC.defaultOperation
     { BHC.requestRoute =
         R.get $
           R.make GetFooBar
             /- "foobars"
             /+ R.Param fooBarIdParam fooBarId
     , BHC.responseSchemas =
-        [ (BHC.Success, BHC.decodeResponseWith BHC.PlainText BHC.UTF8)
+        [ (BHC.Success, BHC.responseBody BHC.PlainText BHC.UTF8)
         ]
     }
 
@@ -98,23 +106,30 @@ prop_httpGet =
             request = HTTP.defaultRequest {HTTP.port = port}
 
           manager <- HTTP.newManager HTTP.defaultManagerSettings
-          BHC.httpRequestThrow getFooBar (GetFooBar $ FooBarId 1) () request manager
+          BHC.httpRequestThrow
+            getFooBar
+            (GetFooBar $ FooBarId 1)
+            BHC.NoQueryParams
+            BHC.NoRequestBody
+            request
+            manager
 
       response <- HH.evalIO (withTestServer handleRequest issueRequest)
       response === expectedResponse
 
 postText ::
-  BHC.RequestDefinition
+  BHC.Operation
     BHC.ContentTypeDecodingError
-    ()
+    BHC.NoPathParams
+    BHC.NoQueryParams
     T.Text
     T.Text
 postText =
-  BHC.defaultRequestDefinition
-    { BHC.requestRoute = R.post (R.make ())
-    , BHC.requestSchema = BHC.encodeRequestWith BHC.PlainText BHC.UTF8
+  BHC.defaultOperation
+    { BHC.requestRoute = R.post (R.make BHC.NoPathParams)
+    , BHC.requestBodySchema = BHC.requestBody BHC.PlainText BHC.UTF8
     , BHC.responseSchemas =
-        [ (BHC.Success, BHC.decodeResponseWith BHC.PlainText BHC.UTF8)
+        [ (BHC.Success, BHC.responseBody BHC.PlainText BHC.UTF8)
         ]
     }
 
@@ -146,21 +161,28 @@ prop_httpPostText =
             request = HTTP.defaultRequest {HTTP.port = port}
 
           manager <- HTTP.newManager HTTP.defaultManagerSettings
-          BHC.httpRequestThrow postText () expectedBody request manager
+          BHC.httpRequestThrow
+            postText
+            BHC.NoPathParams
+            BHC.NoQueryParams
+            expectedBody
+            request
+            manager
 
       response <- HH.evalIO (withTestServer handleRequest issueRequest)
       response === expectedResponse
 
 postNoResponse ::
-  BHC.RequestDefinition
+  BHC.Operation
     BHC.ContentTypeDecodingError
-    ()
+    BHC.NoPathParams
+    BHC.NoQueryParams
     T.Text
-    ()
+    BHC.NoResponseBody
 postNoResponse =
-  BHC.defaultRequestDefinition
-    { BHC.requestRoute = R.post (R.make ())
-    , BHC.requestSchema = BHC.encodeRequestWith BHC.PlainText BHC.UTF8
+  BHC.defaultOperation
+    { BHC.requestRoute = R.post (R.make BHC.NoPathParams)
+    , BHC.requestBodySchema = BHC.requestBody BHC.PlainText BHC.UTF8
     }
 
 prop_httpPostNoResponse :: HH.Property
@@ -188,23 +210,30 @@ prop_httpPostNoResponse =
             request = HTTP.defaultRequest {HTTP.port = port}
 
           manager <- HTTP.newManager HTTP.defaultManagerSettings
-          BHC.httpRequestThrow postNoResponse () expectedRequestBody request manager
+          BHC.httpRequestThrow
+            postNoResponse
+            BHC.NoPathParams
+            BHC.NoQueryParams
+            expectedRequestBody
+            request
+            manager
 
       response <- HH.evalIO (withTestServer handleRequest issueRequest)
-      response === ()
+      response === BHC.NoResponseBody
 
 postBytes ::
-  BHC.RequestDefinition
+  BHC.Operation
     BHC.ContentTypeDecodingError
-    ()
+    BHC.NoPathParams
+    BHC.NoQueryParams
     BS.ByteString
     BS.ByteString
 postBytes =
-  BHC.defaultRequestDefinition
-    { BHC.requestRoute = R.post (R.make ())
-    , BHC.requestSchema = BHC.encodeRequestWith BHC.OctetStream BHC.Bytes
+  BHC.defaultOperation
+    { BHC.requestRoute = R.post (R.make BHC.NoPathParams)
+    , BHC.requestBodySchema = BHC.requestBody BHC.OctetStream BHC.Bytes
     , BHC.responseSchemas =
-        [ (BHC.Success, BHC.decodeResponseWith BHC.OctetStream BHC.Bytes)
+        [ (BHC.Success, BHC.responseBody BHC.OctetStream BHC.Bytes)
         ]
     }
 
@@ -239,7 +268,13 @@ prop_httpPostBytes =
             request = HTTP.defaultRequest {HTTP.port = port}
 
           manager <- HTTP.newManager HTTP.defaultManagerSettings
-          BHC.httpRequestThrow postBytes () expectedBody request manager
+          BHC.httpRequestThrow
+            postBytes
+            BHC.NoPathParams
+            BHC.NoQueryParams
+            expectedBody
+            request
+            manager
 
       response <- HH.evalIO (withTestServer handleRequest issueRequest)
       response === expectedResponse
@@ -251,22 +286,23 @@ data MultiStatus
   deriving (Show, Eq)
 
 multipleResponseCodes ::
-  BHC.RequestDefinition
+  BHC.Operation
     BHC.ContentTypeDecodingError
-    ()
-    ()
+    BHC.NoPathParams
+    BHC.NoQueryParams
+    BHC.NoRequestBody
     MultiStatus
 multipleResponseCodes =
-  BHC.defaultRequestDefinition
+  BHC.defaultOperation
     { BHC.responseSchemas =
-        [ (BHC.Status 200, fmap Multi200 (BHC.decodeResponseWith BHC.PlainText BHC.UTF8))
-        , (BHC.Success, fmap MultiOtherSuccess (BHC.decodeResponseWith BHC.PlainText BHC.UTF8))
-        , (BHC.ClientError, fmap MultiClientError (BHC.decodeResponseWith BHC.PlainText BHC.UTF8))
+        [ (BHC.Status 200, fmap Multi200 (BHC.responseBody BHC.PlainText BHC.UTF8))
+        , (BHC.Success, fmap MultiOtherSuccess (BHC.responseBody BHC.PlainText BHC.UTF8))
+        , (BHC.ClientError, fmap MultiClientError (BHC.responseBody BHC.PlainText BHC.UTF8))
         ]
     }
 
-prop_multiResponse :: HH.Property
-prop_multiResponse =
+prop_httpMultiResponse :: HH.Property
+prop_httpMultiResponse =
   HH.property $ do
     expectedResponse <-
       HH.forAll $
@@ -292,13 +328,19 @@ prop_multiResponse =
           request = HTTP.defaultRequest {HTTP.port = port}
 
         manager <- HTTP.newManager HTTP.defaultManagerSettings
-        BHC.httpRequestThrow multipleResponseCodes () () request manager
+        BHC.httpRequestThrow
+          multipleResponseCodes
+          BHC.NoPathParams
+          BHC.NoQueryParams
+          BHC.NoRequestBody
+          request
+          manager
 
     response <- HH.evalIO (withTestServer handleRequest issueRequest)
     response === expectedResponse
 
-prop_unexpectedStatus :: HH.Property
-prop_unexpectedStatus =
+prop_httpUnexpectedStatus :: HH.Property
+prop_httpUnexpectedStatus =
   HH.withTests 1 . HH.property $ do
     let
       handleRequest _request =
@@ -309,7 +351,14 @@ prop_unexpectedStatus =
           request = HTTP.defaultRequest {HTTP.port = port}
 
         manager <- HTTP.newManager HTTP.defaultManagerSettings
-        Exc.try $ BHC.httpRequestThrow getFooBar (GetFooBar $ FooBarId 1) () request manager
+        Exc.try $
+          BHC.httpRequestThrow
+            getFooBar
+            (GetFooBar $ FooBarId 1)
+            BHC.NoQueryParams
+            BHC.NoRequestBody
+            request
+            manager
 
     exceptionOrFooBar <- HH.evalIO (withTestServer handleRequest issueRequest)
     case exceptionOrFooBar of
@@ -323,8 +372,8 @@ prop_unexpectedStatus =
         HH.annotate "Expected an HTTPException, but got a valid response instead"
         HH.failure
 
-prop_decodingFailure :: HH.Property
-prop_decodingFailure =
+prop_httpDecodingFailure :: HH.Property
+prop_httpDecodingFailure =
   HH.withTests 1 . HH.property $ do
     let
       handleRequest _request =
@@ -335,7 +384,14 @@ prop_decodingFailure =
           request = HTTP.defaultRequest {HTTP.port = port}
 
         manager <- HTTP.newManager HTTP.defaultManagerSettings
-        Exc.try $ BHC.httpRequestThrow getFooBar (GetFooBar $ FooBarId 1) () request manager
+        Exc.try $
+          BHC.httpRequestThrow
+            getFooBar
+            (GetFooBar $ FooBarId 1)
+            BHC.NoQueryParams
+            BHC.NoRequestBody
+            request
+            manager
 
     exceptionOrFooBar <- HH.evalIO (withTestServer handleRequest issueRequest)
     case exceptionOrFooBar of
@@ -344,6 +400,162 @@ prop_decodingFailure =
       Right _fooBar -> do
         HH.annotate "Expected an HTTPException, but got a valid response instead"
         HH.failure
+
+data TestQueryParams = TestQueryParams
+  { queryParam1 :: T.Text
+  , queryParam2 :: Maybe Int
+  }
+  deriving (Show, Eq)
+
+testQueryParamSchema :: BHC.QuerySchema q => q TestQueryParams TestQueryParams
+testQueryParamSchema =
+  BHC.makeQuery TestQueryParams
+    ?+ BHC.required queryParam1 (R.textParam "param1")
+    ?+ BHC.optional queryParam2 (R.intParam "param2")
+
+getQueryParams ::
+  BHC.Operation
+    BHC.ContentTypeDecodingError
+    BHC.NoPathParams
+    TestQueryParams
+    BHC.NoRequestBody
+    BHC.NoResponseBody
+getQueryParams =
+  BHC.defaultOperation
+    { BHC.requestQuerySchema = testQueryParamSchema
+    }
+
+prop_httpGetQueryParams :: HH.Property
+prop_httpGetQueryParams =
+  HH.withTests 1 . HH.property $ do
+    withAssertLater $ \assertLater -> do
+      let
+        expectedParams =
+          TestQueryParams
+            { queryParam1 = "value"
+            , queryParam2 = Just 32
+            }
+
+        handleRequest request = do
+          assertLater $ do
+            Right expectedParams
+              === BHC.decodeQuery
+                testQueryParamSchema
+                (Wai.rawQueryString request)
+
+          pure . responseText HTTPTypes.ok200 $ ""
+
+        issueRequest port = do
+          let
+            request = HTTP.defaultRequest {HTTP.port = port}
+
+          manager <- HTTP.newManager HTTP.defaultManagerSettings
+          BHC.httpRequestThrow
+            getQueryParams
+            BHC.NoPathParams
+            expectedParams
+            BHC.NoRequestBody
+            request
+            manager
+
+      response <- HH.evalIO (withTestServer handleRequest issueRequest)
+      response === BHC.NoResponseBody
+
+requiredFooBarQuery ::
+  BHC.QuerySchema r =>
+  r (T.Text, Int) (T.Text, Int)
+requiredFooBarQuery =
+  BHC.makeQuery (,)
+    ?+ BHC.required fst (R.textParam "foo")
+    ?+ BHC.required snd (R.intParam "bar")
+
+prop_queryParamsRequired :: HH.Property
+prop_queryParamsRequired =
+  HH.property $ do
+    foo <- HH.forAll genText
+    bar <- HH.forAll genInt
+
+    let
+      expectedQuery =
+        HTTPTypes.renderQuery True $
+          [ ("foo", Just (Enc.encodeUtf8 foo))
+          , ("bar", Just (BS8.pack (show bar)))
+          ]
+
+      actualQuery =
+        BHC.encodeQuery requiredFooBarQuery (foo, bar)
+
+      roundTrippedValue =
+        BHC.decodeQuery requiredFooBarQuery actualQuery
+
+    expectedQuery === actualQuery
+    Right (foo, bar) === roundTrippedValue
+
+optionalFooBarQuery ::
+  BHC.QuerySchema r =>
+  r (Maybe T.Text, Maybe Int) (Maybe T.Text, Maybe Int)
+optionalFooBarQuery =
+  BHC.makeQuery (,)
+    ?+ BHC.optional fst (R.textParam "foo")
+    ?+ BHC.optional snd (R.intParam "bar")
+
+prop_queryParamsOptional :: HH.Property
+prop_queryParamsOptional =
+  HH.property $ do
+    foo <- HH.forAll (Gen.maybe genText)
+    bar <- HH.forAll (Gen.maybe genInt)
+
+    let
+      expectedQuery =
+        HTTPTypes.renderQuery True $
+          filter (isJust . snd) $
+            [ ("foo", fmap Enc.encodeUtf8 foo)
+            , ("bar", fmap (BS8.pack . show) bar)
+            ]
+
+      actualQuery =
+        BHC.encodeQuery optionalFooBarQuery (foo, bar)
+
+      roundTrippedValue =
+        BHC.decodeQuery optionalFooBarQuery actualQuery
+
+    expectedQuery === actualQuery
+    Right (foo, bar) === roundTrippedValue
+
+explodedArrayFooBarQuery ::
+  BHC.QuerySchema r =>
+  r ([T.Text], [Int]) ([T.Text], [Int])
+explodedArrayFooBarQuery =
+  BHC.makeQuery (,)
+    ?+ BHC.explodedArray fst (R.textParam "foo")
+    ?+ BHC.explodedArray snd (R.intParam "bar")
+
+prop_queryParamsExplodedArray :: HH.Property
+prop_queryParamsExplodedArray =
+  HH.property $ do
+    foos <- HH.forAll (Gen.list (Range.linear 0 3) genText)
+    bars <- HH.forAll (Gen.list (Range.linear 0 3) genInt)
+
+    let
+      mkFooParam foo =
+        ("foo", Just (Enc.encodeUtf8 foo))
+
+      mkBarParam bar =
+        ("bar", Just (BS8.pack (show bar)))
+
+      expectedQuery =
+        HTTPTypes.renderQuery True $
+          fmap mkFooParam foos
+            <> fmap mkBarParam bars
+
+      actualQuery =
+        BHC.encodeQuery explodedArrayFooBarQuery (foos, bars)
+
+      roundTrippedValue =
+        BHC.decodeQuery explodedArrayFooBarQuery actualQuery
+
+    expectedQuery === actualQuery
+    Right (foos, bars) === roundTrippedValue
 
 withAssertLater ::
   ((HH.PropertyT IO () -> IO ()) -> HH.PropertyT IO a) ->
@@ -392,3 +604,7 @@ responseText status =
 genText :: HH.Gen T.Text
 genText =
   Gen.text (Range.linear 0 32) Gen.unicodeAll
+
+genInt :: HH.Gen Int
+genInt =
+  Gen.integral (Range.linearFrom 0 minBound maxBound)

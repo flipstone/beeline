@@ -7,4 +7,5 @@ module Beeline.HTTP.Client
 import Beeline.HTTP.Client.Body as Export
 import Beeline.HTTP.Client.ContentType as Export
 import Beeline.HTTP.Client.HTTPRequest as Export
-import Beeline.HTTP.Client.RequestDefinition as Export
+import Beeline.HTTP.Client.Operation as Export
+import Beeline.HTTP.Client.QuerySchema as Export
