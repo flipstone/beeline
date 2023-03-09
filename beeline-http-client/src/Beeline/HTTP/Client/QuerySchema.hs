@@ -13,6 +13,7 @@ module Beeline.HTTP.Client.QuerySchema
   , (?+)
   , QueryEncoder (..)
   , encodeQuery
+  , encodeQueryBare
   , QueryBuilder
   , QueryDecoder (..)
   , decodeQuery
@@ -81,13 +82,21 @@ newtype QueryEncoder a b
 
 {- |
   Render a query value to a 'BS.ByteString'. The resulting string with
-  include a prepende question mark if any values are present to encode.
+  include a prepended question mark if any values are present to encode.
 -}
 encodeQuery :: QueryEncoder a b -> a -> BS.ByteString
 encodeQuery (QueryEncoder toBuilder) a =
   case DList.toList (toBuilder a) of
     [] -> BS.empty
     nonEmptyList -> HTTPTypes.renderQuery True nonEmptyList
+
+{- |
+  Render a query value to a 'BS.ByteString'. The resulting string will
+  not include a prepended question mark.
+-}
+encodeQueryBare :: QueryEncoder a b -> a -> BS.ByteString
+encodeQueryBare (QueryEncoder toBuilder) a =
+  HTTPTypes.renderQuery False (DList.toList (toBuilder a))
 
 instance QuerySchema QueryEncoder where
   newtype QueryParam QueryEncoder query _a = EncodeParam (query -> QueryBuilder)

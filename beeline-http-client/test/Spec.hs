@@ -46,6 +46,7 @@ tests =
   , ("prop_httpUnexpectedStatus", prop_httpUnexpectedStatus)
   , ("prop_httpDecodingFailure", prop_httpDecodingFailure)
   , ("prop_httpGetQueryParams", prop_httpGetQueryParams)
+  , ("prop_httpPostQueryParams", prop_httpPostQueryParams)
   , ("prop_queryParamsRequired", prop_queryParamsRequired)
   , ("prop_queryParamsOptional", prop_queryParamsOptional)
   , ("prop_queryParamsExplodedArray", prop_queryParamsExplodedArray)
@@ -455,6 +456,54 @@ prop_httpGetQueryParams =
             BHC.NoPathParams
             expectedParams
             BHC.NoRequestBody
+            request
+            manager
+
+      response <- HH.evalIO (withTestServer handleRequest issueRequest)
+      response === BHC.NoResponseBody
+
+postQueryParams ::
+  BHC.Operation
+    BHC.ContentTypeDecodingError
+    BHC.NoPathParams
+    BHC.NoQueryParams
+    TestQueryParams
+    BHC.NoResponseBody
+postQueryParams =
+  BHC.defaultOperation
+    { BHC.requestBodySchema =
+        BHC.requestBody BHC.FormURLEncoded (BHC.FormEncoder testQueryParamSchema)
+    }
+
+prop_httpPostQueryParams :: HH.Property
+prop_httpPostQueryParams =
+  HH.withTests 1 . HH.property $ do
+    withAssertLater $ \assertLater -> do
+      let
+        expectedParams =
+          TestQueryParams
+            { queryParam1 = "value"
+            , queryParam2 = Just 32
+            }
+
+        handleRequest request = do
+          body <- fmap LBS.toStrict (Wai.consumeRequestBodyStrict request)
+          assertLater $ do
+            lookup "Content-Type" (Wai.requestHeaders request) === Just "application/x-www-form-urlencoded"
+            Right expectedParams === BHC.decodeQuery testQueryParamSchema body
+
+          pure . responseText HTTPTypes.ok200 $ ""
+
+        issueRequest port = do
+          let
+            request = HTTP.defaultRequest {HTTP.port = port}
+
+          manager <- HTTP.newManager HTTP.defaultManagerSettings
+          BHC.httpRequestThrow
+            postQueryParams
+            BHC.NoPathParams
+            BHC.NoQueryParams
+            expectedParams
             request
             manager
 

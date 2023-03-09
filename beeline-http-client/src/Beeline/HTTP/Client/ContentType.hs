@@ -9,6 +9,8 @@ module Beeline.HTTP.Client.ContentType
   , PlainTextEncoding (UTF8, LazyUTF8)
   , OctetStream (OctetStream)
   , OctetStreamEncoding (Bytes, LazyBytes)
+  , FormURLEncoded (FormURLEncoded)
+  , FormEncoder (FormEncoder)
   ) where
 
 import qualified Control.Exception as Exc
@@ -21,6 +23,8 @@ import qualified Data.Text.Encoding as Enc
 import qualified Data.Text.Lazy as LT
 import qualified Data.Text.Lazy.Encoding as LEnc
 import qualified Network.HTTP.Client as HTTP
+
+import Beeline.HTTP.Client.QuerySchema (QueryEncoder, encodeQueryBare)
 
 class ContentTypeEncoder coder where
   type EncodeSchema coder :: Type -> Type
@@ -145,3 +149,26 @@ octetStreamContentType =
 readLazyBytes :: HTTP.BodyReader -> IO LBS.ByteString
 readLazyBytes =
   fmap LBS.fromChunks . HTTP.brConsume
+
+{-
+  A content type tag for posting form encoded bodies
+-}
+
+data FormURLEncoded
+  = FormURLEncoded
+
+newtype FormEncoder a
+  = FormEncoder (QueryEncoder a a)
+
+instance ContentTypeEncoder FormURLEncoded where
+  type EncodeSchema FormURLEncoded = FormEncoder
+
+  toRequestContentType FormURLEncoded _ =
+    formURLEncodedContentType
+
+  toRequestBody FormURLEncoded (FormEncoder queryEncoder) =
+    HTTP.RequestBodyBS . encodeQueryBare queryEncoder
+
+formURLEncodedContentType :: BS.ByteString
+formURLEncodedContentType =
+  BS8.pack "application/x-www-form-urlencoded"
