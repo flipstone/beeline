@@ -1,5 +1,5 @@
 name: beeline-routing
-version: 0.2.3.0
+version: 0.2.4.0
 license: MIT
 author: "Flipstone Technology Partners"
 maintainer: "development@flipstone.com"
@@ -32,6 +32,13 @@ when:
       ghc-options:
         - -Wall
 
+dependencies:
+  - base
+  - http-types
+  - shrubbery
+  - text
+  - scientific >= 0.3 && < 0.4
+
 library:
   source-dirs: src
   exposed-modules:
@@ -44,13 +51,7 @@ library:
   dependencies:
     - attoparsec
     - dlist
-    - containers >= 0.6 &&  < 0.7
-
-dependencies:
-  - base
-  - http-types
-  - shrubbery
-  - text
+    - containers >= 0.6 && < 0.7
 
 tests:
   spec:

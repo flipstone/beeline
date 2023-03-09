@@ -8,6 +8,9 @@ module Beeline.Routing.ParameterDefinition
   , int16Param
   , int32Param
   , int64Param
+  , scientificParam
+  , doubleParam
+  , floatParam
   , booleanParam
   , boundedEnumParam
   , coerceParam
@@ -22,11 +25,13 @@ import qualified Data.Bifunctor as Bifunctor
 import Data.Coerce (Coercible, coerce)
 import Data.Int (Int16, Int32, Int64, Int8)
 import qualified Data.Map.Strict as Map
+import Data.Scientific (Scientific, fromFloatDigits, toRealFloat)
 import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Text.Lazy as LT
 import qualified Data.Text.Lazy.Builder as LTB
 import qualified Data.Text.Lazy.Builder.Int as LTBI
+import qualified Data.Text.Lazy.Builder.RealFloat as LTBF
 
 data ParameterDefinition param = ParameterDefinition
   { parameterName :: Text
@@ -65,6 +70,21 @@ int32Param =
 int64Param :: Text -> ParameterDefinition Int64
 int64Param =
   integralParam
+
+scientificParam :: Text -> ParameterDefinition Scientific
+scientificParam name =
+  parsedParam name Atto.scientific (T.pack . show)
+
+doubleParam :: Text -> ParameterDefinition Double
+doubleParam name =
+  parsedParam
+    name
+    Atto.double
+    (LT.toStrict . LTB.toLazyText . LTBF.realFloat)
+
+floatParam :: Text -> ParameterDefinition Float
+floatParam =
+  convertParam (Right . toRealFloat) fromFloatDigits . scientificParam
 
 booleanParam :: Text -> ParameterDefinition Bool
 booleanParam name =
