@@ -5,7 +5,7 @@ cabal-version: 1.12
 -- see: https://github.com/sol/hpack
 
 name:           beeline-http-client
-version:        0.4.0.0
+version:        0.4.1.0
 description:    Please see the README on GitHub at <https://github.com/githubuser/json-fleece-http#readme>
 homepage:       https://github.com/flipstone/beeline#readme
 bug-reports:    https://github.com/flipstone/beeline/issues
@@ -45,6 +45,7 @@ library
     , dlist >=1.0 && <2.0
     , http-client ==0.7.*
     , http-types ==0.12.*
+    , network-uri ==2.6.*
     , text ==1.2.*
   default-language: Haskell2010
   if flag(strict)

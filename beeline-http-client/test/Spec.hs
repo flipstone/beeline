@@ -12,6 +12,7 @@ import qualified Data.ByteString as BS
 import qualified Data.ByteString.Char8 as BS8
 import qualified Data.ByteString.Lazy as LBS
 import qualified Data.IORef as IORef
+import qualified Data.List as List
 import Data.Maybe (isJust)
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as Enc
@@ -53,6 +54,7 @@ tests =
   , ("prop_queryParamsExplodedArray", prop_queryParamsExplodedArray)
   , ("prop_basePath", prop_basePath)
   , ("prop_headers", prop_headers)
+  , ("prop_parseBaseURI", prop_parseBaseURI)
   ]
 
 newtype FooBarId
@@ -640,6 +642,49 @@ prop_headers =
           void $ BHC.httpRequestThrow getFooBar request manager
 
       HH.evalIO (withTestServer handleRequest issueRequest)
+
+prop_parseBaseURI :: HH.Property
+prop_parseBaseURI =
+  HH.property $ do
+    host <- HH.forAll (Gen.string (Range.linear 0 12) Gen.alphaNum)
+    scheme <- HH.forAll (Gen.element ["http", "https"])
+    mbPort <- HH.forAll (Gen.maybe (Gen.int (Range.constant 0 1024)))
+    pathParts <-
+      HH.forAll $
+        Gen.list
+          (Range.linear 0 5)
+          (Gen.string (Range.linear 0 5) Gen.alphaNum)
+
+    let
+      path =
+        case pathParts of
+          [] -> ""
+          _ -> "/" <> List.intercalate "/" pathParts
+
+      input =
+        scheme
+          <> "://"
+          <> host
+          <> case mbPort of
+            Just port -> ":" <> show port
+            Nothing -> ""
+          <> path
+
+      expected =
+        BHC.defaultBaseURI
+          { BHC.host = BS8.pack host
+          , BHC.secure = scheme == "https"
+          , BHC.port =
+              case mbPort of
+                Just port -> port
+                Nothing ->
+                  if scheme == "https"
+                    then 443
+                    else 80
+          , BHC.basePath = BS8.pack path
+          }
+
+    Right expected === BHC.parseBaseURI input
 
 withAssertLater ::
   ((HH.PropertyT IO () -> IO ()) -> HH.PropertyT IO a) ->
