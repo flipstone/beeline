@@ -3,9 +3,15 @@ module Beeline.HTTP.Client.HTTPRequest
   , httpRequestThrow
   , httpRequestHandleResult
   , StatusResult (ExpectedStatus, UnexpectedStatus)
+  , BaseURI (BaseURI, host, port, basePath)
+  , defaultBaseURI
+  , Request (Request, baseURI, headers, baseHTTPRequest, route, query, body)
+  , defaultRequest
   ) where
 
 import qualified Control.Exception as Exc
+import qualified Data.ByteString as BS
+import qualified Data.ByteString.Char8 as BS8
 import qualified Data.ByteString.Lazy as LBS
 import qualified Data.List as List
 import qualified Data.Text.Encoding as Enc
@@ -13,7 +19,10 @@ import qualified Network.HTTP.Client as HTTP
 import qualified Network.HTTP.Types as HTTPTypes
 
 import Beeline.HTTP.Client.Operation
-  ( Operation
+  ( NoPathParams (NoPathParams)
+  , NoQueryParams (NoQueryParams)
+  , NoRequestBody (NoRequestBody)
+  , Operation
   , StatusRange (AnyStatus, ClientError, Informational, Redirect, ServerError, Status, Success)
   , checkStatus
   , encodeRequestBody
@@ -32,13 +41,44 @@ data StatusResult unexpectedStatusBody err response
   = ExpectedStatus HTTP.Request (HTTP.Response ()) (Either err response)
   | UnexpectedStatus HTTP.Request (HTTP.Response unexpectedStatusBody)
 
+data BaseURI = BaseURI
+  { host :: BS.ByteString
+  , port :: Int
+  , basePath :: BS.ByteString
+  }
+
+defaultBaseURI :: BaseURI
+defaultBaseURI =
+  BaseURI
+    { host = BS8.pack "localhost"
+    , port = 80
+    , basePath = BS8.pack ""
+    }
+
+data Request route query body = Request
+  { baseURI :: BaseURI
+  , baseHTTPRequest :: HTTP.Request
+  , headers :: [HTTPTypes.Header]
+  , route :: route
+  , query :: query
+  , body :: body
+  }
+
+defaultRequest :: Request NoPathParams NoQueryParams NoRequestBody
+defaultRequest =
+  Request
+    { baseURI = defaultBaseURI
+    , headers = []
+    , baseHTTPRequest = HTTP.defaultRequest
+    , route = NoPathParams
+    , query = NoQueryParams
+    , body = NoRequestBody
+    }
+
 httpRequestThrow ::
   Exc.Exception err =>
   Operation err route query requestBody response ->
-  route ->
-  query ->
-  requestBody ->
-  HTTP.Request ->
+  Request route query requestBody ->
   HTTP.Manager ->
   IO response
 httpRequestThrow =
@@ -62,10 +102,7 @@ httpRequestThrow =
 
 httpRequest ::
   Operation err route query requestBody response ->
-  route ->
-  query ->
-  requestBody ->
-  HTTP.Request ->
+  Request route query requestBody ->
   HTTP.Manager ->
   IO (StatusResult () err response)
 httpRequest =
@@ -83,13 +120,10 @@ httpRequest =
 httpRequestHandleResult ::
   (StatusResult HTTP.BodyReader err response -> IO result) ->
   Operation err route query requestBody response ->
-  route ->
-  query ->
-  requestBody ->
-  HTTP.Request ->
+  Request route query requestBody ->
   HTTP.Manager ->
   IO result
-httpRequestHandleResult handleResult definition routeValue queryValue requestValue incompleteRequest manager =
+httpRequestHandleResult handleResult definition request manager =
   let
     querySchema =
       requestQuerySchema definition
@@ -100,31 +134,40 @@ httpRequestHandleResult handleResult definition routeValue queryValue requestVal
     rspSchemas =
       responseSchemas definition
 
-    body =
-      encodeRequestBody rqBodySchema requestValue
+    requestBody =
+      encodeRequestBody rqBodySchema (body request)
 
     responseSchemaHeaders (range, schema) =
       if includeHeadersInRequest range
         then responseSchemaRequestHeaders schema
         else []
 
-    headers =
+    incompleteRequest =
+      baseHTTPRequest request
+
+    requestHeaders =
       concat
         [ HTTP.requestHeaders incompleteRequest
+        , headers request
         , requestBodySchemaHeaders rqBodySchema
         , foldMap responseSchemaHeaders rspSchemas
         ]
 
-    (method, path) =
-      R.generateRoute (requestRoute definition) routeValue
+    (method, routePath) =
+      R.generateRoute (requestRoute definition) (route request)
+
+    fullPath =
+      basePath (baseURI request) <> Enc.encodeUtf8 routePath
 
     completeRequest =
       incompleteRequest
         { HTTP.method = HTTPTypes.renderStdMethod method
-        , HTTP.path = Enc.encodeUtf8 path
-        , HTTP.queryString = encodeQuery querySchema queryValue
-        , HTTP.requestBody = body
-        , HTTP.requestHeaders = headers
+        , HTTP.host = host (baseURI request)
+        , HTTP.port = port (baseURI request)
+        , HTTP.path = fullPath
+        , HTTP.queryString = encodeQuery querySchema (query request)
+        , HTTP.requestBody = requestBody
+        , HTTP.requestHeaders = requestHeaders
         }
   in
     HTTP.withResponse completeRequest manager $ \response -> do

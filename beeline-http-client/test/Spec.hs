@@ -7,6 +7,7 @@ module Main
 import qualified Control.Concurrent as Conc
 import qualified Control.Concurrent.MVar as MVar
 import qualified Control.Exception as Exc
+import Control.Monad (void)
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Char8 as BS8
 import qualified Data.ByteString.Lazy as LBS
@@ -50,6 +51,8 @@ tests =
   , ("prop_queryParamsRequired", prop_queryParamsRequired)
   , ("prop_queryParamsOptional", prop_queryParamsOptional)
   , ("prop_queryParamsExplodedArray", prop_queryParamsExplodedArray)
+  , ("prop_basePath", prop_basePath)
+  , ("prop_headers", prop_headers)
   ]
 
 newtype FooBarId
@@ -104,16 +107,14 @@ prop_httpGet =
 
         issueRequest port = do
           let
-            request = HTTP.defaultRequest {HTTP.port = port}
+            request =
+              BHC.defaultRequest
+                { BHC.baseURI = BHC.defaultBaseURI {BHC.port = port}
+                , BHC.route = GetFooBar (FooBarId 1)
+                }
 
           manager <- HTTP.newManager HTTP.defaultManagerSettings
-          BHC.httpRequestThrow
-            getFooBar
-            (GetFooBar $ FooBarId 1)
-            BHC.NoQueryParams
-            BHC.NoRequestBody
-            request
-            manager
+          BHC.httpRequestThrow getFooBar request manager
 
       response <- HH.evalIO (withTestServer handleRequest issueRequest)
       response === expectedResponse
@@ -159,16 +160,14 @@ prop_httpPostText =
 
         issueRequest port = do
           let
-            request = HTTP.defaultRequest {HTTP.port = port}
+            request =
+              BHC.defaultRequest
+                { BHC.baseURI = BHC.defaultBaseURI {BHC.port = port}
+                , BHC.body = expectedBody
+                }
 
           manager <- HTTP.newManager HTTP.defaultManagerSettings
-          BHC.httpRequestThrow
-            postText
-            BHC.NoPathParams
-            BHC.NoQueryParams
-            expectedBody
-            request
-            manager
+          BHC.httpRequestThrow postText request manager
 
       response <- HH.evalIO (withTestServer handleRequest issueRequest)
       response === expectedResponse
@@ -208,16 +207,14 @@ prop_httpPostNoResponse =
 
         issueRequest port = do
           let
-            request = HTTP.defaultRequest {HTTP.port = port}
+            request =
+              BHC.defaultRequest
+                { BHC.baseURI = BHC.defaultBaseURI {BHC.port = port}
+                , BHC.body = expectedRequestBody
+                }
 
           manager <- HTTP.newManager HTTP.defaultManagerSettings
-          BHC.httpRequestThrow
-            postNoResponse
-            BHC.NoPathParams
-            BHC.NoQueryParams
-            expectedRequestBody
-            request
-            manager
+          BHC.httpRequestThrow postNoResponse request manager
 
       response <- HH.evalIO (withTestServer handleRequest issueRequest)
       response === BHC.NoResponseBody
@@ -266,16 +263,14 @@ prop_httpPostBytes =
 
         issueRequest port = do
           let
-            request = HTTP.defaultRequest {HTTP.port = port}
+            request =
+              BHC.defaultRequest
+                { BHC.baseURI = BHC.defaultBaseURI {BHC.port = port}
+                , BHC.body = expectedBody
+                }
 
           manager <- HTTP.newManager HTTP.defaultManagerSettings
-          BHC.httpRequestThrow
-            postBytes
-            BHC.NoPathParams
-            BHC.NoQueryParams
-            expectedBody
-            request
-            manager
+          BHC.httpRequestThrow postBytes request manager
 
       response <- HH.evalIO (withTestServer handleRequest issueRequest)
       response === expectedResponse
@@ -326,16 +321,13 @@ prop_httpMultiResponse =
 
       issueRequest port = do
         let
-          request = HTTP.defaultRequest {HTTP.port = port}
+          request =
+            BHC.defaultRequest
+              { BHC.baseURI = BHC.defaultBaseURI {BHC.port = port}
+              }
 
         manager <- HTTP.newManager HTTP.defaultManagerSettings
-        BHC.httpRequestThrow
-          multipleResponseCodes
-          BHC.NoPathParams
-          BHC.NoQueryParams
-          BHC.NoRequestBody
-          request
-          manager
+        BHC.httpRequestThrow multipleResponseCodes request manager
 
     response <- HH.evalIO (withTestServer handleRequest issueRequest)
     response === expectedResponse
@@ -349,17 +341,14 @@ prop_httpUnexpectedStatus =
 
       issueRequest port = do
         let
-          request = HTTP.defaultRequest {HTTP.port = port}
+          request =
+            BHC.defaultRequest
+              { BHC.baseURI = BHC.defaultBaseURI {BHC.port = port}
+              , BHC.route = GetFooBar (FooBarId 1)
+              }
 
         manager <- HTTP.newManager HTTP.defaultManagerSettings
-        Exc.try $
-          BHC.httpRequestThrow
-            getFooBar
-            (GetFooBar $ FooBarId 1)
-            BHC.NoQueryParams
-            BHC.NoRequestBody
-            request
-            manager
+        Exc.try $ BHC.httpRequestThrow getFooBar request manager
 
     exceptionOrFooBar <- HH.evalIO (withTestServer handleRequest issueRequest)
     case exceptionOrFooBar of
@@ -382,17 +371,14 @@ prop_httpDecodingFailure =
 
       issueRequest port = do
         let
-          request = HTTP.defaultRequest {HTTP.port = port}
+          request =
+            BHC.defaultRequest
+              { BHC.baseURI = BHC.defaultBaseURI {BHC.port = port}
+              , BHC.route = GetFooBar (FooBarId 1)
+              }
 
         manager <- HTTP.newManager HTTP.defaultManagerSettings
-        Exc.try $
-          BHC.httpRequestThrow
-            getFooBar
-            (GetFooBar $ FooBarId 1)
-            BHC.NoQueryParams
-            BHC.NoRequestBody
-            request
-            manager
+        Exc.try $ BHC.httpRequestThrow getFooBar request manager
 
     exceptionOrFooBar <- HH.evalIO (withTestServer handleRequest issueRequest)
     case exceptionOrFooBar of
@@ -448,16 +434,14 @@ prop_httpGetQueryParams =
 
         issueRequest port = do
           let
-            request = HTTP.defaultRequest {HTTP.port = port}
+            request =
+              BHC.defaultRequest
+                { BHC.baseURI = BHC.defaultBaseURI {BHC.port = port}
+                , BHC.query = expectedParams
+                }
 
           manager <- HTTP.newManager HTTP.defaultManagerSettings
-          BHC.httpRequestThrow
-            getQueryParams
-            BHC.NoPathParams
-            expectedParams
-            BHC.NoRequestBody
-            request
-            manager
+          BHC.httpRequestThrow getQueryParams request manager
 
       response <- HH.evalIO (withTestServer handleRequest issueRequest)
       response === BHC.NoResponseBody
@@ -496,16 +480,14 @@ prop_httpPostQueryParams =
 
         issueRequest port = do
           let
-            request = HTTP.defaultRequest {HTTP.port = port}
+            request =
+              BHC.defaultRequest
+                { BHC.baseURI = BHC.defaultBaseURI {BHC.port = port}
+                , BHC.body = expectedParams
+                }
 
           manager <- HTTP.newManager HTTP.defaultManagerSettings
-          BHC.httpRequestThrow
-            postQueryParams
-            BHC.NoPathParams
-            BHC.NoQueryParams
-            expectedParams
-            request
-            manager
+          BHC.httpRequestThrow postQueryParams request manager
 
       response <- HH.evalIO (withTestServer handleRequest issueRequest)
       response === BHC.NoResponseBody
@@ -605,6 +587,59 @@ prop_queryParamsExplodedArray =
 
     expectedQuery === actualQuery
     Right (foos, bars) === roundTrippedValue
+
+prop_basePath :: HH.Property
+prop_basePath =
+  HH.withTests 1 . HH.property $ do
+    withAssertLater $ \assertLater -> do
+      let
+        handleRequest request = do
+          assertLater $ do
+            Wai.pathInfo request === ["someBasePath", "foobars", "1"]
+
+          pure . responseText HTTPTypes.ok200 $ ""
+
+        issueRequest port = do
+          let
+            request =
+              BHC.defaultRequest
+                { BHC.baseURI =
+                    BHC.defaultBaseURI
+                      { BHC.port = port
+                      , BHC.basePath = "/someBasePath"
+                      }
+                , BHC.route = GetFooBar (FooBarId 1)
+                }
+
+          manager <- HTTP.newManager HTTP.defaultManagerSettings
+          void $ BHC.httpRequestThrow getFooBar request manager
+
+      HH.evalIO (withTestServer handleRequest issueRequest)
+
+prop_headers :: HH.Property
+prop_headers =
+  HH.withTests 1 . HH.property $ do
+    withAssertLater $ \assertLater -> do
+      let
+        handleRequest request = do
+          assertLater $ do
+            lookup "Some-Header" (Wai.requestHeaders request) === Just "foobar"
+
+          pure . responseText HTTPTypes.ok200 $ ""
+
+        issueRequest port = do
+          let
+            request =
+              BHC.defaultRequest
+                { BHC.baseURI = BHC.defaultBaseURI {BHC.port = port}
+                , BHC.route = GetFooBar (FooBarId 1)
+                , BHC.headers = [("Some-Header", "foobar")]
+                }
+
+          manager <- HTTP.newManager HTTP.defaultManagerSettings
+          void $ BHC.httpRequestThrow getFooBar request manager
+
+      HH.evalIO (withTestServer handleRequest issueRequest)
 
 withAssertLater ::
   ((HH.PropertyT IO () -> IO ()) -> HH.PropertyT IO a) ->
