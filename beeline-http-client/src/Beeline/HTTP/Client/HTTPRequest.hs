@@ -1,7 +1,7 @@
 module Beeline.HTTP.Client.HTTPRequest
   ( httpRequest
   , httpRequestThrow
-  , httpRequestHandleResult
+  , httpRequestUsing
   , throwStatusAndDecodingErrors
   , StatusResult (ExpectedStatus, UnexpectedStatus)
   , BaseURI (BaseURI, host, port, basePath, secure)
@@ -9,6 +9,8 @@ module Beeline.HTTP.Client.HTTPRequest
   , parseBaseURI
   , Request (Request, baseURI, headers, baseHTTPRequest, route, query, body)
   , defaultRequest
+  , buildHTTPRequest
+  , handleHTTPResponse
   ) where
 
 import qualified Control.Exception as Exc
@@ -27,6 +29,7 @@ import Beeline.HTTP.Client.Operation
   , NoQueryParams (NoQueryParams)
   , NoRequestBody (NoRequestBody)
   , Operation
+  , ResponseBodySchema
   , StatusRange (AnyStatus, ClientError, Informational, Redirect, ServerError, Status, Success)
   , checkStatus
   , encodeRequestBody
@@ -129,7 +132,7 @@ httpRequestThrow ::
   HTTP.Manager ->
   IO response
 httpRequestThrow =
-  httpRequestHandleResult throwStatusAndDecodingErrors
+  httpRequestUsing HTTP.withResponse throwStatusAndDecodingErrors
 
 throwStatusAndDecodingErrors ::
   Exc.Exception err =>
@@ -165,24 +168,43 @@ httpRequest =
           UnexpectedStatus request response ->
             UnexpectedStatus request (removeBody response)
   in
-    httpRequestHandleResult removeUnexpectedBody
+    httpRequestUsing
+      HTTP.withResponse
+      removeUnexpectedBody
 
-httpRequestHandleResult ::
+httpRequestUsing ::
+  (HTTP.Request -> HTTP.Manager -> (HTTP.Response HTTP.BodyReader -> IO result) -> IO result) ->
   (StatusResult HTTP.BodyReader err response -> IO result) ->
   Operation err route query requestBody response ->
   Request route query requestBody ->
   HTTP.Manager ->
   IO result
-httpRequestHandleResult handleResult definition request manager =
+httpRequestUsing runRequest handleResult operation request manager =
   let
-    querySchema =
-      requestQuerySchema definition
-
-    rqBodySchema =
-      requestBodySchema definition
+    completeRequest =
+      buildHTTPRequest operation request
 
     rspSchemas =
-      responseSchemas definition
+      responseSchemas operation
+  in
+    runRequest completeRequest manager $ \response -> do
+      result <- handleHTTPResponse completeRequest rspSchemas response
+      handleResult result
+
+buildHTTPRequest ::
+  Operation err route query body responses ->
+  Request route query body ->
+  HTTP.Request
+buildHTTPRequest operation request =
+  let
+    querySchema =
+      requestQuerySchema operation
+
+    rqBodySchema =
+      requestBodySchema operation
+
+    rspSchemas =
+      responseSchemas operation
 
     requestBody =
       encodeRequestBody rqBodySchema (body request)
@@ -204,39 +226,44 @@ httpRequestHandleResult handleResult definition request manager =
         ]
 
     (method, routePath) =
-      R.generateRoute (requestRoute definition) (route request)
+      R.generateRoute (requestRoute operation) (route request)
 
     fullPath =
       basePath (baseURI request) <> Enc.encodeUtf8 routePath
-
-    completeRequest =
-      incompleteRequest
-        { HTTP.method = HTTPTypes.renderStdMethod method
-        , HTTP.secure = secure (baseURI request)
-        , HTTP.host = host (baseURI request)
-        , HTTP.port = port (baseURI request)
-        , HTTP.path = fullPath
-        , HTTP.queryString = encodeQuery querySchema (query request)
-        , HTTP.requestBody = requestBody
-        , HTTP.requestHeaders = requestHeaders
-        }
   in
-    HTTP.withResponse completeRequest manager $ \response -> do
-      let
-        mbResponseSchema =
-          List.find
-            (\(range, _schema) -> checkStatus range (HTTP.responseStatus response))
-            rspSchemas
+    incompleteRequest
+      { HTTP.method = HTTPTypes.renderStdMethod method
+      , HTTP.secure = secure (baseURI request)
+      , HTTP.host = host (baseURI request)
+      , HTTP.port = port (baseURI request)
+      , HTTP.path = fullPath
+      , HTTP.queryString = encodeQuery querySchema (query request)
+      , HTTP.requestBody = requestBody
+      , HTTP.requestHeaders = requestHeaders
+      }
 
-      case mbResponseSchema of
-        Nothing -> handleResult (UnexpectedStatus completeRequest response)
-        Just (_range, schema) -> do
-          decodingResult <- parseHTTPResponse schema response
-          handleResult $
-            ExpectedStatus
-              completeRequest
-              (removeBody response)
-              decodingResult
+handleHTTPResponse ::
+  Foldable t =>
+  HTTP.Request ->
+  t (StatusRange, ResponseBodySchema err response) ->
+  HTTP.Response HTTP.BodyReader ->
+  IO (StatusResult HTTP.BodyReader err response)
+handleHTTPResponse completeRequest rspSchemas response = do
+  let
+    mbResponseSchema =
+      List.find
+        (\(range, _schema) -> checkStatus range (HTTP.responseStatus response))
+        rspSchemas
+
+  case mbResponseSchema of
+    Nothing -> pure (UnexpectedStatus completeRequest response)
+    Just (_range, schema) -> do
+      decodingResult <- parseHTTPResponse schema response
+      pure $
+        ExpectedStatus
+          completeRequest
+          (removeBody response)
+          decodingResult
 
 removeBody :: HTTP.Response a -> HTTP.Response ()
 removeBody response =
