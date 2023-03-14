@@ -2,6 +2,7 @@ module Beeline.HTTP.Client.HTTPRequest
   ( httpRequest
   , httpRequestThrow
   , httpRequestHandleResult
+  , throwStatusAndDecodingErrors
   , StatusResult (ExpectedStatus, UnexpectedStatus)
   , BaseURI (BaseURI, host, port, basePath, secure)
   , defaultBaseURI
@@ -128,23 +129,26 @@ httpRequestThrow ::
   HTTP.Manager ->
   IO response
 httpRequestThrow =
-  let
-    throwErrors statusResult =
-      case statusResult of
-        ExpectedStatus _request _response (Right result) ->
-          pure result
-        ExpectedStatus _request _response (Left err) ->
-          Exc.throwIO err
-        UnexpectedStatus request response -> do
-          chunk <- HTTP.brReadSome (HTTP.responseBody response) 1024
+  httpRequestHandleResult throwStatusAndDecodingErrors
 
-          Exc.throwIO
-            . HTTP.HttpExceptionRequest request
-            . HTTP.StatusCodeException (removeBody response)
-            . LBS.toStrict
-            $ chunk
-  in
-    httpRequestHandleResult throwErrors
+throwStatusAndDecodingErrors ::
+  Exc.Exception err =>
+  StatusResult HTTP.BodyReader err response ->
+  IO response
+throwStatusAndDecodingErrors statusResult =
+  case statusResult of
+    ExpectedStatus _request _response (Right result) ->
+      pure result
+    ExpectedStatus _request _response (Left err) ->
+      Exc.throwIO err
+    UnexpectedStatus request response -> do
+      chunk <- HTTP.brReadSome (HTTP.responseBody response) 1024
+
+      Exc.throwIO
+        . HTTP.HttpExceptionRequest request
+        . HTTP.StatusCodeException (removeBody response)
+        . LBS.toStrict
+        $ chunk
 
 httpRequest ::
   Operation err route query requestBody response ->
