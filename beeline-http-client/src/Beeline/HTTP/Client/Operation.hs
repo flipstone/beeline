@@ -10,7 +10,7 @@ module Beeline.HTTP.Client.Operation
       )
   , RequestBodySchema
     ( RequestBodySchema
-    , requestBodySchemaHeaders
+    , requestBodyContentType
     , encodeRequestBody
     )
   , NoRequestBody (NoRequestBody)
@@ -18,7 +18,7 @@ module Beeline.HTTP.Client.Operation
   , noRequestBody
   , ResponseBodySchema
     ( ResponseBodySchema
-    , responseSchemaRequestHeaders
+    , responseAcceptableContentTypes
     , parseHTTPResponse
     )
   , NoResponseBody (NoResponseBody)
@@ -41,6 +41,8 @@ module Beeline.HTTP.Client.Operation
   , defaultOperation
   ) where
 
+import qualified Data.ByteString as BS
+import qualified Data.Set as Set
 import qualified Network.HTTP.Client as HTTP
 import qualified Network.HTTP.Types as HTTPTypes
 
@@ -70,7 +72,7 @@ data Operation err route query requestBody response = Operation
   }
 
 data RequestBodySchema a = RequestBodySchema
-  { requestBodySchemaHeaders :: [HTTPTypes.Header]
+  { requestBodyContentType :: Maybe BS.ByteString
   , encodeRequestBody :: a -> HTTP.RequestBody
   }
 
@@ -80,7 +82,7 @@ data NoRequestBody = NoRequestBody
 noRequestBody :: RequestBodySchema NoRequestBody
 noRequestBody =
   RequestBodySchema
-    { requestBodySchemaHeaders = []
+    { requestBodyContentType = Nothing
     , encodeRequestBody = (\NoRequestBody -> "")
     }
 
@@ -88,7 +90,7 @@ requestBody ::
   ContentTypeEncoder coder => coder -> EncodeSchema coder a -> RequestBodySchema a
 requestBody coder encoder =
   RequestBodySchema
-    { requestBodySchemaHeaders = [("Content-Type", toRequestContentType coder encoder)]
+    { requestBodyContentType = Just (toRequestContentType coder encoder)
     , encodeRequestBody = toRequestBody coder encoder
     }
 
@@ -113,7 +115,7 @@ checkStatus range status =
     ServerError -> HTTPTypes.statusIsServerError status
 
 data ResponseBodySchema err a = ResponseBodySchema
-  { responseSchemaRequestHeaders :: [HTTPTypes.Header]
+  { responseAcceptableContentTypes :: Set.Set BS.ByteString
   , parseHTTPResponse :: HTTP.Response HTTP.BodyReader -> IO (Either err a)
   }
 
@@ -129,7 +131,7 @@ data NoResponseBody = NoResponseBody
 noResponseBody :: ResponseBodySchema err NoResponseBody
 noResponseBody =
   ResponseBodySchema
-    { responseSchemaRequestHeaders = []
+    { responseAcceptableContentTypes = Set.empty
     , parseHTTPResponse = \_response -> pure (Right NoResponseBody)
     }
 
@@ -140,7 +142,7 @@ responseBody ::
   ResponseBodySchema (DecodingError coder) a
 responseBody coder decoder =
   ResponseBodySchema
-    { responseSchemaRequestHeaders = [("Accept", toResponseContentType coder decoder)]
+    { responseAcceptableContentTypes = Set.singleton (toResponseContentType coder decoder)
     , parseHTTPResponse = parseResponse coder decoder . HTTP.responseBody
     }
 

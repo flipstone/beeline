@@ -1,3 +1,5 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 module Beeline.HTTP.Client.HTTPRequest
   ( httpRequest
   , httpRequestThrow
@@ -18,6 +20,7 @@ import qualified Data.ByteString as BS
 import qualified Data.ByteString.Char8 as BS8
 import qualified Data.ByteString.Lazy as LBS
 import qualified Data.List as List
+import qualified Data.Set as Set
 import qualified Data.Text.Encoding as Enc
 import qualified Network.HTTP.Client as HTTP
 import qualified Network.HTTP.Types as HTTPTypes
@@ -30,15 +33,15 @@ import Beeline.HTTP.Client.Operation
   , NoRequestBody (NoRequestBody)
   , Operation
   , ResponseBodySchema
-  , StatusRange (AnyStatus, ClientError, Informational, Redirect, ServerError, Status, Success)
+  , StatusRange
   , checkStatus
   , encodeRequestBody
   , parseHTTPResponse
+  , requestBodyContentType
   , requestBodySchema
-  , requestBodySchemaHeaders
   , requestQuerySchema
   , requestRoute
-  , responseSchemaRequestHeaders
+  , responseAcceptableContentTypes
   , responseSchemas
   )
 import Beeline.HTTP.Client.QuerySchema (encodeQuery)
@@ -209,10 +212,15 @@ buildHTTPRequest operation request =
     requestBody =
       encodeRequestBody rqBodySchema (body request)
 
-    responseSchemaHeaders (range, schema) =
-      if includeHeadersInRequest range
-        then responseSchemaRequestHeaders schema
-        else []
+    acceptableContentTypes =
+      Set.toList
+        . foldMap (responseAcceptableContentTypes . snd)
+        $ rspSchemas
+
+    acceptHeaders =
+      case acceptableContentTypes of
+        [] -> []
+        _ -> [(HTTPTypes.hAccept, BS.intercalate ", " acceptableContentTypes)]
 
     incompleteRequest =
       baseHTTPRequest request
@@ -221,8 +229,8 @@ buildHTTPRequest operation request =
       concat
         [ HTTP.requestHeaders incompleteRequest
         , headers request
-        , requestBodySchemaHeaders rqBodySchema
-        , foldMap responseSchemaHeaders rspSchemas
+        , maybe [] (\ct -> [(HTTPTypes.hContentType, ct)]) (requestBodyContentType rqBodySchema)
+        , acceptHeaders
         ]
 
     (method, routePath) =
@@ -270,14 +278,3 @@ removeBody response =
   response
     { HTTP.responseBody = ()
     }
-
-includeHeadersInRequest :: StatusRange -> Bool
-includeHeadersInRequest range =
-  case range of
-    Status code -> HTTPTypes.statusIsSuccessful (toEnum code)
-    Informational -> False
-    Success -> True
-    Redirect -> False
-    ClientError -> False
-    ServerError -> False
-    AnyStatus -> False
