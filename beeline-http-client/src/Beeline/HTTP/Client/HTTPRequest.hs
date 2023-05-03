@@ -6,9 +6,6 @@ module Beeline.HTTP.Client.HTTPRequest
   , httpRequestUsing
   , throwStatusAndDecodingErrors
   , StatusResult (ExpectedStatus, UnexpectedStatus)
-  , BaseURI (BaseURI, host, port, basePath, secure)
-  , defaultBaseURI
-  , parseBaseURI
   , Request (Request, baseURI, headers, baseHTTPRequest, route, query, body)
   , defaultRequest
   , buildHTTPRequest
@@ -17,16 +14,14 @@ module Beeline.HTTP.Client.HTTPRequest
 
 import qualified Control.Exception as Exc
 import qualified Data.ByteString as BS
-import qualified Data.ByteString.Char8 as BS8
 import qualified Data.ByteString.Lazy as LBS
 import qualified Data.List as List
 import qualified Data.Set as Set
 import qualified Data.Text.Encoding as Enc
 import qualified Network.HTTP.Client as HTTP
 import qualified Network.HTTP.Types as HTTPTypes
-import qualified Network.URI as URI
-import qualified Numeric
 
+import Beeline.HTTP.Client.BaseURI (BaseURI, basePath, defaultBaseURI, host, port, secure)
 import Beeline.HTTP.Client.Operation
   ( NoPathParams (NoPathParams)
   , NoQueryParams (NoQueryParams)
@@ -50,63 +45,6 @@ import qualified Beeline.Routing as R
 data StatusResult unexpectedStatusBody err response
   = ExpectedStatus HTTP.Request (HTTP.Response ()) (Either err response)
   | UnexpectedStatus HTTP.Request (HTTP.Response unexpectedStatusBody)
-
-data BaseURI = BaseURI
-  { host :: BS.ByteString
-  , port :: Int
-  , basePath :: BS.ByteString
-  , secure :: Bool
-  }
-  deriving (Eq, Show)
-
-defaultBaseURI :: BaseURI
-defaultBaseURI =
-  BaseURI
-    { host = BS8.pack "localhost"
-    , port = 80
-    , basePath = BS8.pack ""
-    , secure = False
-    }
-
-parseBaseURI :: String -> Either String BaseURI
-parseBaseURI string = do
-  uri <-
-    case URI.parseAbsoluteURI string of
-      Nothing -> Left "Invalid absolute URI"
-      Just absUri -> Right absUri
-
-  authority <-
-    case URI.uriAuthority uri of
-      Nothing -> Left "URI Authority missing"
-      Just auth -> Right auth
-
-  https <-
-    case URI.uriScheme uri of
-      "http:" -> Right False
-      "https:" -> Right True
-      invalidScheme -> Left ("Invalid URI scheme: " <> invalidScheme)
-
-  uriPort <-
-    case URI.uriPort authority of
-      (':' : portString) ->
-        case Numeric.readDec portString of
-          [(portNum, "")] -> Right portNum
-          _ -> Left ("Invalid URI port: :" <> portString)
-      "" ->
-        Right $
-          if https
-            then 443
-            else 80
-      invalidPort ->
-        Left ("Invalid URI port: " <> invalidPort)
-
-  pure $
-    BaseURI
-      { port = uriPort
-      , basePath = BS8.pack (URI.uriPath uri)
-      , host = BS8.pack (URI.uriRegName authority)
-      , secure = https
-      }
 
 data Request route query body = Request
   { baseURI :: BaseURI
