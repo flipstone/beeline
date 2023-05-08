@@ -6,7 +6,7 @@ module Beeline.HTTP.Client.HTTPRequest
   , httpRequestUsing
   , throwStatusAndDecodingErrors
   , StatusResult (ExpectedStatus, UnexpectedStatus)
-  , Request (Request, baseURI, headers, baseHTTPRequest, route, query, body)
+  , Request (Request, baseURI, baseHTTPRequest, route, query, headers, additionalHeaders, body)
   , defaultRequest
   , buildHTTPRequest
   , handleHTTPResponse
@@ -23,7 +23,8 @@ import qualified Network.HTTP.Types as HTTPTypes
 
 import Beeline.HTTP.Client.BaseURI (BaseURI, basePath, defaultBaseURI, host, port, secure)
 import Beeline.HTTP.Client.Operation
-  ( NoPathParams (NoPathParams)
+  ( NoHeaderParams (NoHeaderParams)
+  , NoPathParams (NoPathParams)
   , NoQueryParams (NoQueryParams)
   , NoRequestBody (NoRequestBody)
   , Operation
@@ -34,42 +35,45 @@ import Beeline.HTTP.Client.Operation
   , parseHTTPResponse
   , requestBodyContentType
   , requestBodySchema
-  , requestQuerySchema
+  , requestHeaderSchema
+  , requestParameterCollectionSchema
   , requestRoute
   , responseAcceptableContentTypes
   , responseSchemas
   )
-import Beeline.HTTP.Client.QuerySchema (encodeQuery)
+import Beeline.HTTP.Client.ParameterCollectionSchema (encodeHeaders, encodeQuery)
 import qualified Beeline.Routing as R
 
 data StatusResult unexpectedStatusBody err response
   = ExpectedStatus HTTP.Request (HTTP.Response ()) (Either err response)
   | UnexpectedStatus HTTP.Request (HTTP.Response unexpectedStatusBody)
 
-data Request route query body = Request
+data Request route query headers body = Request
   { baseURI :: BaseURI
   , baseHTTPRequest :: HTTP.Request
-  , headers :: [HTTPTypes.Header]
+  , headers :: headers
+  , additionalHeaders :: [HTTPTypes.Header]
   , route :: route
   , query :: query
   , body :: body
   }
 
-defaultRequest :: Request NoPathParams NoQueryParams NoRequestBody
+defaultRequest :: Request NoPathParams NoQueryParams NoHeaderParams NoRequestBody
 defaultRequest =
   Request
     { baseURI = defaultBaseURI
-    , headers = []
     , baseHTTPRequest = HTTP.defaultRequest
     , route = NoPathParams
     , query = NoQueryParams
+    , headers = NoHeaderParams
+    , additionalHeaders = []
     , body = NoRequestBody
     }
 
 httpRequestThrow ::
   Exc.Exception err =>
-  Operation err route query requestBody response ->
-  Request route query requestBody ->
+  Operation err route query headers requestBody response ->
+  Request route query headers requestBody ->
   HTTP.Manager ->
   IO response
 httpRequestThrow =
@@ -95,8 +99,8 @@ throwStatusAndDecodingErrors statusResult =
         $ chunk
 
 httpRequest ::
-  Operation err route query requestBody response ->
-  Request route query requestBody ->
+  Operation err route query headers requestBody response ->
+  Request route query headers requestBody ->
   HTTP.Manager ->
   IO (StatusResult () err response)
 httpRequest =
@@ -116,8 +120,8 @@ httpRequest =
 httpRequestUsing ::
   (HTTP.Request -> HTTP.Manager -> (HTTP.Response HTTP.BodyReader -> IO result) -> IO result) ->
   (StatusResult HTTP.BodyReader err response -> IO result) ->
-  Operation err route query requestBody response ->
-  Request route query requestBody ->
+  Operation err route query headers requestBody response ->
+  Request route query headers requestBody ->
   HTTP.Manager ->
   IO result
 httpRequestUsing runRequest handleResult operation request manager =
@@ -133,13 +137,16 @@ httpRequestUsing runRequest handleResult operation request manager =
       handleResult result
 
 buildHTTPRequest ::
-  Operation err route query body responses ->
-  Request route query body ->
+  Operation err route query headers body responses ->
+  Request route query headers body ->
   HTTP.Request
 buildHTTPRequest operation request =
   let
     querySchema =
-      requestQuerySchema operation
+      requestParameterCollectionSchema operation
+
+    headerSchema =
+      requestHeaderSchema operation
 
     rqBodySchema =
       requestBodySchema operation
@@ -166,7 +173,8 @@ buildHTTPRequest operation request =
     requestHeaders =
       concat
         [ HTTP.requestHeaders incompleteRequest
-        , headers request
+        , encodeHeaders headerSchema (headers request)
+        , additionalHeaders request
         , maybe [] (\ct -> [(HTTPTypes.hContentType, ct)]) (requestBodyContentType rqBodySchema)
         , acceptHeaders
         ]

@@ -4,7 +4,8 @@ module Beeline.HTTP.Client.Operation
   ( Operation
       ( Operation
       , requestRoute
-      , requestQuerySchema
+      , requestParameterCollectionSchema
+      , requestHeaderSchema
       , requestBodySchema
       , responseSchemas
       )
@@ -28,6 +29,8 @@ module Beeline.HTTP.Client.Operation
   , noPathParams
   , NoQueryParams (NoQueryParams)
   , noQueryParams
+  , NoHeaderParams (NoHeaderParams)
+  , noHeaderParams
   , StatusRange
     ( AnyStatus
     , Status
@@ -57,16 +60,18 @@ import Beeline.HTTP.Client.ContentType
   , toRequestContentType
   , toResponseContentType
   )
-import Beeline.HTTP.Client.QuerySchema
-  ( QueryEncoder
-  , QuerySchema (makeQuery)
+import Beeline.HTTP.Client.ParameterCollectionSchema
+  ( HeaderEncoder
+  , ParameterCollectionSchema (makeParams)
+  , QueryEncoder
   )
 
 import qualified Beeline.Routing as R
 
-data Operation err route query requestBody response = Operation
+data Operation err route query headers requestBody response = Operation
   { requestRoute :: R.RouteGenerator route
-  , requestQuerySchema :: QueryEncoder query query
+  , requestParameterCollectionSchema :: QueryEncoder query query
+  , requestHeaderSchema :: HeaderEncoder headers headers
   , requestBodySchema :: RequestBodySchema requestBody
   , responseSchemas :: [(StatusRange, ResponseBodySchema err response)]
   }
@@ -156,15 +161,23 @@ noPathParams =
 data NoQueryParams = NoQueryParams
   deriving (Show, Eq)
 
-noQueryParams :: QuerySchema q => q NoQueryParams NoQueryParams
+noQueryParams :: ParameterCollectionSchema q => q NoQueryParams NoQueryParams
 noQueryParams =
-  makeQuery NoQueryParams
+  makeParams NoQueryParams
 
-defaultOperation :: Operation err NoPathParams NoQueryParams NoRequestBody NoResponseBody
+data NoHeaderParams = NoHeaderParams
+  deriving (Show, Eq)
+
+noHeaderParams :: ParameterCollectionSchema q => q NoHeaderParams NoHeaderParams
+noHeaderParams =
+  makeParams NoHeaderParams
+
+defaultOperation :: Operation err NoPathParams NoQueryParams NoHeaderParams NoRequestBody NoResponseBody
 defaultOperation =
   Operation
     { requestRoute = noPathParams
-    , requestQuerySchema = noQueryParams
+    , requestParameterCollectionSchema = noQueryParams
+    , requestHeaderSchema = noHeaderParams
     , requestBodySchema = noRequestBody
     , responseSchemas = [(Success, noResponseBody)]
     }

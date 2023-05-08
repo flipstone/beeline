@@ -13,7 +13,7 @@ import qualified Data.ByteString.Char8 as BS8
 import qualified Data.ByteString.Lazy as LBS
 import qualified Data.IORef as IORef
 import qualified Data.List as List
-import Data.Maybe (isJust)
+import Data.Maybe (catMaybes, isJust)
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as Enc
 import Hedgehog ((===))
@@ -52,8 +52,12 @@ tests =
   , ("prop_queryParamsRequired", prop_queryParamsRequired)
   , ("prop_queryParamsOptional", prop_queryParamsOptional)
   , ("prop_queryParamsExplodedArray", prop_queryParamsExplodedArray)
+  , ("prop_headersRequired", prop_headersRequired)
+  , ("prop_headersOptional", prop_headersOptional)
+  , ("prop_headersExplodedArray", prop_headersExplodedArray)
   , ("prop_basePath", prop_basePath)
   , ("prop_headers", prop_headers)
+  , ("prop_additionalHeaders", prop_additionalHeaders)
   , ("prop_parseBaseURI", prop_parseBaseURI)
   ]
 
@@ -73,6 +77,7 @@ getFooBar ::
     BHC.ContentTypeDecodingError
     GetFooBar
     BHC.NoQueryParams
+    BHC.NoHeaderParams
     BHC.NoRequestBody
     T.Text
 getFooBar =
@@ -126,6 +131,7 @@ postText ::
     BHC.ContentTypeDecodingError
     BHC.NoPathParams
     BHC.NoQueryParams
+    BHC.NoHeaderParams
     T.Text
     T.Text
 postText =
@@ -179,6 +185,7 @@ postNoResponse ::
     BHC.ContentTypeDecodingError
     BHC.NoPathParams
     BHC.NoQueryParams
+    BHC.NoHeaderParams
     T.Text
     BHC.NoResponseBody
 postNoResponse =
@@ -226,6 +233,7 @@ postBytes ::
     BHC.ContentTypeDecodingError
     BHC.NoPathParams
     BHC.NoQueryParams
+    BHC.NoHeaderParams
     BS.ByteString
     BS.ByteString
 postBytes =
@@ -288,6 +296,7 @@ multipleResponseCodes ::
     BHC.ContentTypeDecodingError
     BHC.NoPathParams
     BHC.NoQueryParams
+    BHC.NoHeaderParams
     BHC.NoRequestBody
     MultiStatus
 multipleResponseCodes =
@@ -396,9 +405,9 @@ data TestQueryParams = TestQueryParams
   }
   deriving (Show, Eq)
 
-testQueryParamSchema :: BHC.QuerySchema q => q TestQueryParams TestQueryParams
+testQueryParamSchema :: BHC.ParameterCollectionSchema q => q TestQueryParams TestQueryParams
 testQueryParamSchema =
-  BHC.makeQuery TestQueryParams
+  BHC.makeParams TestQueryParams
     ?+ BHC.required queryParam1 (R.textParam "param1")
     ?+ BHC.optional queryParam2 (R.intParam "param2")
 
@@ -407,11 +416,12 @@ getQueryParams ::
     BHC.ContentTypeDecodingError
     BHC.NoPathParams
     TestQueryParams
+    BHC.NoHeaderParams
     BHC.NoRequestBody
     BHC.NoResponseBody
 getQueryParams =
   BHC.defaultOperation
-    { BHC.requestQuerySchema = testQueryParamSchema
+    { BHC.requestParameterCollectionSchema = testQueryParamSchema
     }
 
 prop_httpGetQueryParams :: HH.Property
@@ -453,6 +463,7 @@ postQueryParams ::
     BHC.ContentTypeDecodingError
     BHC.NoPathParams
     BHC.NoQueryParams
+    BHC.NoHeaderParams
     TestQueryParams
     BHC.NoResponseBody
 postQueryParams =
@@ -495,10 +506,10 @@ prop_httpPostQueryParams =
       response === BHC.NoResponseBody
 
 requiredFooBarQuery ::
-  BHC.QuerySchema r =>
+  BHC.ParameterCollectionSchema r =>
   r (T.Text, Int) (T.Text, Int)
 requiredFooBarQuery =
-  BHC.makeQuery (,)
+  BHC.makeParams (,)
     ?+ BHC.required fst (R.textParam "foo")
     ?+ BHC.required snd (R.intParam "bar")
 
@@ -525,10 +536,10 @@ prop_queryParamsRequired =
     Right (foo, bar) === roundTrippedValue
 
 optionalFooBarQuery ::
-  BHC.QuerySchema r =>
+  BHC.ParameterCollectionSchema r =>
   r (Maybe T.Text, Maybe Int) (Maybe T.Text, Maybe Int)
 optionalFooBarQuery =
-  BHC.makeQuery (,)
+  BHC.makeParams (,)
     ?+ BHC.optional fst (R.textParam "foo")
     ?+ BHC.optional snd (R.intParam "bar")
 
@@ -556,10 +567,10 @@ prop_queryParamsOptional =
     Right (foo, bar) === roundTrippedValue
 
 explodedArrayFooBarQuery ::
-  BHC.QuerySchema r =>
+  BHC.ParameterCollectionSchema r =>
   r ([T.Text], [Int]) ([T.Text], [Int])
 explodedArrayFooBarQuery =
-  BHC.makeQuery (,)
+  BHC.makeParams (,)
     ?+ BHC.explodedArray fst (R.textParam "foo")
     ?+ BHC.explodedArray snd (R.intParam "bar")
 
@@ -590,6 +601,80 @@ prop_queryParamsExplodedArray =
     expectedQuery === actualQuery
     Right (foos, bars) === roundTrippedValue
 
+prop_headersRequired :: HH.Property
+prop_headersRequired =
+  HH.property $ do
+    foo <- HH.forAll genText
+    bar <- HH.forAll genInt
+
+    let
+      expectedHeaders =
+        [ ("foo", Enc.encodeUtf8 foo)
+        , ("bar", BS8.pack (show bar))
+        ]
+
+      actualHeaders =
+        BHC.encodeHeaders requiredFooBarQuery (foo, bar)
+
+      roundTrippedValue =
+        BHC.decodeHeaders requiredFooBarQuery actualHeaders
+
+    expectedHeaders === actualHeaders
+    Right (foo, bar) === roundTrippedValue
+
+prop_headersOptional :: HH.Property
+prop_headersOptional =
+  HH.property $ do
+    foo <- HH.forAll (Gen.maybe genText)
+    bar <- HH.forAll (Gen.maybe genInt)
+
+    let
+      mbTuple k mbV =
+        case mbV of
+          Nothing -> Nothing
+          Just v -> Just (k, v)
+
+      expectedHeaders =
+        catMaybes
+          [ mbTuple "foo" (fmap Enc.encodeUtf8 foo)
+          , mbTuple "bar" (fmap (BS8.pack . show) bar)
+          ]
+
+      actualHeaders =
+        BHC.encodeHeaders optionalFooBarQuery (foo, bar)
+
+      roundTrippedValue =
+        BHC.decodeHeaders optionalFooBarQuery actualHeaders
+
+    expectedHeaders === actualHeaders
+    Right (foo, bar) === roundTrippedValue
+
+prop_headersExplodedArray :: HH.Property
+prop_headersExplodedArray =
+  HH.property $ do
+    foos <- HH.forAll (Gen.list (Range.linear 0 3) genText)
+    bars <- HH.forAll (Gen.list (Range.linear 0 3) genInt)
+
+    let
+      mkFooParam foo =
+        ("foo", Enc.encodeUtf8 foo)
+
+      mkBarParam bar =
+        ("bar", BS8.pack (show bar))
+
+      expectedHeaders =
+        fmap mkFooParam foos
+          <> fmap mkBarParam bars
+
+      actualHeaders =
+        BHC.encodeHeaders explodedArrayFooBarQuery (foos, bars)
+
+      roundTrippedValue =
+        BHC.decodeHeaders explodedArrayFooBarQuery actualHeaders
+
+    expectedHeaders === actualHeaders
+    Right (foos, bars) === roundTrippedValue
+
 prop_basePath :: HH.Property
 prop_basePath =
   HH.withTests 1 . HH.property $ do
@@ -618,8 +703,46 @@ prop_basePath =
 
       HH.evalIO (withTestServer handleRequest issueRequest)
 
+getWithHeaders ::
+  BHC.Operation
+    BHC.ContentTypeDecodingError
+    BHC.NoPathParams
+    BHC.NoQueryParams
+    (T.Text, Int)
+    BHC.NoRequestBody
+    BHC.NoResponseBody
+getWithHeaders =
+  BHC.defaultOperation
+    { BHC.requestHeaderSchema = requiredFooBarQuery
+    }
+
 prop_headers :: HH.Property
 prop_headers =
+  HH.withTests 1 . HH.property $ do
+    withAssertLater $ \assertLater -> do
+      let
+        handleRequest request = do
+          assertLater $ do
+            lookup "foo" (Wai.requestHeaders request) === Just "baz"
+            lookup "bar" (Wai.requestHeaders request) === Just "10"
+
+          pure . responseText HTTPTypes.ok200 $ ""
+
+        issueRequest port = do
+          let
+            request =
+              BHC.defaultRequest
+                { BHC.baseURI = BHC.defaultBaseURI {BHC.port = port}
+                , BHC.headers = ("baz", 10)
+                }
+
+          manager <- HTTP.newManager HTTP.defaultManagerSettings
+          void $ BHC.httpRequestThrow getWithHeaders request manager
+
+      HH.evalIO (withTestServer handleRequest issueRequest)
+
+prop_additionalHeaders :: HH.Property
+prop_additionalHeaders =
   HH.withTests 1 . HH.property $ do
     withAssertLater $ \assertLater -> do
       let
@@ -635,7 +758,7 @@ prop_headers =
               BHC.defaultRequest
                 { BHC.baseURI = BHC.defaultBaseURI {BHC.port = port}
                 , BHC.route = GetFooBar (FooBarId 1)
-                , BHC.headers = [("Some-Header", "foobar")]
+                , BHC.additionalHeaders = [("Some-Header", "foobar")]
                 }
 
           manager <- HTTP.newManager HTTP.defaultManagerSettings

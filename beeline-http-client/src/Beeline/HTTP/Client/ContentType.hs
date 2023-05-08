@@ -24,7 +24,7 @@ import qualified Data.Text.Lazy as LT
 import qualified Data.Text.Lazy.Encoding as LEnc
 import qualified Network.HTTP.Client as HTTP
 
-import Beeline.HTTP.Client.QuerySchema (QueryEncoder, encodeQueryBare)
+import Beeline.HTTP.Client.ParameterCollectionSchema (QueryEncoder, encodeQueryBare)
 
 class ContentTypeEncoder coder where
   type EncodeSchema coder :: Type -> Type
