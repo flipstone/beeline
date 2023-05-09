@@ -36,7 +36,7 @@ import Beeline.HTTP.Client.Operation
   , requestBodyContentType
   , requestBodySchema
   , requestHeaderSchema
-  , requestParameterCollectionSchema
+  , requestQuerySchema
   , requestRoute
   , responseAcceptableContentTypes
   , responseSchemas
@@ -143,7 +143,7 @@ buildHTTPRequest ::
 buildHTTPRequest operation request =
   let
     querySchema =
-      requestParameterCollectionSchema operation
+      requestQuerySchema operation
 
     headerSchema =
       requestHeaderSchema operation

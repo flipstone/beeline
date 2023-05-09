@@ -4,7 +4,7 @@ module Beeline.HTTP.Client.Operation
   ( Operation
       ( Operation
       , requestRoute
-      , requestParameterCollectionSchema
+      , requestQuerySchema
       , requestHeaderSchema
       , requestBodySchema
       , responseSchemas
@@ -70,7 +70,7 @@ import qualified Beeline.Routing as R
 
 data Operation err route query headers requestBody response = Operation
   { requestRoute :: R.RouteGenerator route
-  , requestParameterCollectionSchema :: QueryEncoder query query
+  , requestQuerySchema :: QueryEncoder query query
   , requestHeaderSchema :: HeaderEncoder headers headers
   , requestBodySchema :: RequestBodySchema requestBody
   , responseSchemas :: [(StatusRange, ResponseBodySchema err response)]
@@ -176,7 +176,7 @@ defaultOperation :: Operation err NoPathParams NoQueryParams NoHeaderParams NoRe
 defaultOperation =
   Operation
     { requestRoute = noPathParams
-    , requestParameterCollectionSchema = noQueryParams
+    , requestQuerySchema = noQueryParams
     , requestHeaderSchema = noHeaderParams
     , requestBodySchema = noRequestBody
     , responseSchemas = [(Success, noResponseBody)]

@@ -421,7 +421,7 @@ getQueryParams ::
     BHC.NoResponseBody
 getQueryParams =
   BHC.defaultOperation
-    { BHC.requestParameterCollectionSchema = testQueryParamSchema
+    { BHC.requestQuerySchema = testQueryParamSchema
     }
 
 prop_httpGetQueryParams :: HH.Property
