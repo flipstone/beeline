@@ -8,6 +8,7 @@ module Beeline.HTTP.Client.HTTPRequest
   , StatusResult (ExpectedStatus, UnexpectedStatus)
   , Request (Request, baseURI, baseHTTPRequest, route, query, headers, additionalHeaders, body)
   , defaultRequest
+  , applyBasicAuth
   , buildHTTPRequest
   , handleHTTPResponse
   ) where
@@ -68,6 +69,16 @@ defaultRequest =
     , headers = NoHeaderParams
     , additionalHeaders = []
     , body = NoRequestBody
+    }
+
+applyBasicAuth ::
+  BS.ByteString ->
+  BS.ByteString ->
+  Request route query header body ->
+  Request route query header body
+applyBasicAuth user password req =
+  req
+    { baseHTTPRequest = HTTP.applyBasicAuth user password . baseHTTPRequest $ req
     }
 
 httpRequestThrow ::
