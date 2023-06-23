@@ -4,7 +4,7 @@ services:
 
     volumes:
       - .:${PROJECT_DIR}
-      - stack_root:/stack-root
+      - flipstone_stack_root:/stack-root
     working_dir: ${PROJECT_DIR}
     environment:
       STACK_ROOT: /stack-root
@@ -14,4 +14,5 @@ services:
       CI:
 
 volumes:
-  stack_root:
+  flipstone_stack_root:
+    external: true
