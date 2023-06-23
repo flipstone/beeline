@@ -1,7 +1,6 @@
-version: "3"
 services:
   dev:
-    image: flipstone/haskell-tools:debian-unstable-ghc-9.2.5-2023-03-02-cf07678
+    image: ghcr.io/flipstone/haskell-tools:debian-unstable-ghc-9.2.7-2023-06-21-4bf5abf
 
     volumes:
       - .:${PROJECT_DIR}

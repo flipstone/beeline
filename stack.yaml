@@ -1,6 +1,7 @@
-resolver: lts-20.11
+resolver: lts-20.24
 allow-different-user: true
 system-ghc: true
+install-ghc: false
 packages:
   - beeline-routing
   - beeline-http-client
@@ -16,4 +17,4 @@ flags:
 
 extra-deps:
   - git: https://github.com/flipstone/shrubbery.git
-    commit: ba602d04c5f85a0909fa4efa2227c07178bdb513
+    commit: 94ae4dfe91fa03cf5863c6402c40a6d7967ac8b4
