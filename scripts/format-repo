@@ -10,5 +10,4 @@ else
   MODE=inplace
 fi
 
-find */* -iname '*.hs' \
-  | xargs fourmolu --mode $MODE
+git ls-files -z '*.hs' | xargs -0 fourmolu --mode $MODE
