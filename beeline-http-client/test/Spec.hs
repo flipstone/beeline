@@ -394,7 +394,7 @@ prop_httpDecodingFailure =
     exceptionOrFooBar <- HH.evalIO (withTestServer handleRequest issueRequest)
     case exceptionOrFooBar of
       Left (BHC.ContentTypeDecodingError msg) ->
-        msg === "Cannot decode byte '\\xfc': Data.Text.Internal.Encoding.streamDecodeUtf8With: Invalid UTF-8 stream"
+        msg === "Cannot decode byte '\\xfc': Data.Text.Internal.Encoding: Invalid UTF-8 stream"
       Right _fooBar -> do
         HH.annotate "Expected an HTTPException, but got a valid response instead"
         HH.failure
@@ -405,7 +405,7 @@ data TestQueryParams = TestQueryParams
   }
   deriving (Show, Eq)
 
-testQueryParamSchema :: BHC.ParameterCollectionSchema q => q TestQueryParams TestQueryParams
+testQueryParamSchema :: (BHC.ParameterCollectionSchema q) => q TestQueryParams TestQueryParams
 testQueryParamSchema =
   BHC.makeParams TestQueryParams
     ?+ BHC.required queryParam1 (R.textParam "param1")
@@ -506,7 +506,7 @@ prop_httpPostQueryParams =
       response === BHC.NoResponseBody
 
 requiredFooBarQuery ::
-  BHC.ParameterCollectionSchema r =>
+  (BHC.ParameterCollectionSchema r) =>
   r (T.Text, Int) (T.Text, Int)
 requiredFooBarQuery =
   BHC.makeParams (,)
@@ -536,7 +536,7 @@ prop_queryParamsRequired =
     Right (foo, bar) === roundTrippedValue
 
 optionalFooBarQuery ::
-  BHC.ParameterCollectionSchema r =>
+  (BHC.ParameterCollectionSchema r) =>
   r (Maybe T.Text, Maybe Int) (Maybe T.Text, Maybe Int)
 optionalFooBarQuery =
   BHC.makeParams (,)
@@ -567,7 +567,7 @@ prop_queryParamsOptional =
     Right (foo, bar) === roundTrippedValue
 
 explodedArrayFooBarQuery ::
-  BHC.ParameterCollectionSchema r =>
+  (BHC.ParameterCollectionSchema r) =>
   r ([T.Text], [Int]) ([T.Text], [Int])
 explodedArrayFooBarQuery =
   BHC.makeParams (,)

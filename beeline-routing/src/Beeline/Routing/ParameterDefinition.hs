@@ -121,14 +121,14 @@ boundedEnumParam toText =
   in
     convertParam parseEnum toText . textParam
 
-integralParam :: Integral n => Text -> ParameterDefinition n
+integralParam :: (Integral n) => Text -> ParameterDefinition n
 integralParam name =
   parsedParam
     name
     (Atto.signed Atto.decimal)
     (LT.toStrict . LTB.toLazyText . LTBI.decimal)
 
-coerceParam :: Coercible a b => ParameterDefinition b -> ParameterDefinition a
+coerceParam :: (Coercible a b) => ParameterDefinition b -> ParameterDefinition a
 coerceParam =
   convertParam (Right . coerce) coerce
 

@@ -52,7 +52,7 @@ shipmentIdParam :: R.ParameterDefinition ShipmentId
 shipmentIdParam =
   R.coerceParam (R.intParam "shipmentId")
 
-shipmentRouter :: R.Router r => r ShipmentRoutes
+shipmentRouter :: (R.Router r) => r ShipmentRoutes
 shipmentRouter =
   R.routeList $
     R.get (R.make ListShipments)
@@ -63,7 +63,7 @@ shipmentRouter =
       /: (R.make ShipmentItemRoute /- "items" /> R.Subrouter itemRouter shipmentItemRoute)
       /: R.emptyRoutes
 
-shipmentRouterWithoutOperators :: R.Router r => r ShipmentRoutes
+shipmentRouterWithoutOperators :: (R.Router r) => r ShipmentRoutes
 shipmentRouterWithoutOperators =
   R.routeList
     . R.addRoute (R.get (R.make ListShipments))
@@ -109,7 +109,7 @@ itemIdParam :: R.ParameterDefinition ItemId
 itemIdParam =
   R.coerceParam (R.intParam "itemId")
 
-itemRouter :: R.Router r => r ItemRoutes
+itemRouter :: (R.Router r) => r ItemRoutes
 itemRouter =
   R.routeList $
     R.get (R.make ListItems)

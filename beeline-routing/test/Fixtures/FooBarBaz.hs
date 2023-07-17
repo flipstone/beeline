@@ -24,7 +24,7 @@ data Foo = Foo deriving (Show)
 data Bar = Bar deriving (Show)
 data Baz = Baz deriving (Show)
 
-type FooBarBaz = Shrubbery.Union [Foo, Bar, Baz]
+type FooBarBaz = Shrubbery.Union '[Foo, Bar, Baz]
 
 fooBarBazToText :: FooBarBaz -> Text
 fooBarBazToText =
@@ -39,7 +39,7 @@ handleFooBarBaz foo bar baz =
           Shrubbery.branch baz $
             Shrubbery.branchEnd
 
-fooBarBazRouter :: R.Router r => r FooBarBaz
+fooBarBazRouter :: (R.Router r) => r FooBarBaz
 fooBarBazRouter =
   R.routeList $
     R.get (R.make Foo /- "foo")
