@@ -59,7 +59,7 @@ class Router r where
     Builder r route (subrouter -> route) -> Subrouter r route subrouter -> r route
 
   routeList :: (KnownLength types) => RouteList r types -> r (Union types)
-  addRoute :: r a -> RouteList r rest -> RouteList r (a ': rest)
+  addRoute :: r a -> RouteList r rest -> RouteList r (a : rest)
   emptyRoutes :: RouteList r '[]
 
 (/-) ::
@@ -87,7 +87,7 @@ infixl 9 />
 infixl 9 /-
 infixl 9 /+
 
-(/:) :: (Router r) => r a -> RouteList r rest -> RouteList r (a ': rest)
+(/:) :: (Router r) => r a -> RouteList r rest -> RouteList r (a : rest)
 (/:) = addRoute
 
 infixr 9 /:

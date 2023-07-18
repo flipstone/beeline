@@ -24,7 +24,7 @@ data Foo = Foo deriving (Show)
 data Bar = Bar deriving (Show)
 data Baz = Baz deriving (Show)
 
-type FooBarBaz = Shrubbery.Union '[Foo, Bar, Baz]
+type FooBarBaz = Shrubbery.Union [Foo, Bar, Baz]
 
 fooBarBazToText :: FooBarBaz -> Text
 fooBarBazToText =

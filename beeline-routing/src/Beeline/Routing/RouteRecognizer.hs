@@ -97,7 +97,7 @@ recognizeRouteSubrouter (Builder recognizeF) (Router.Subrouter subrouter _access
 recognizeRouteAddRoute ::
   RouteRecognizer a ->
   Router.RouteList RouteRecognizer subRoutes ->
-  Router.RouteList RouteRecognizer (a ': subRoutes)
+  Router.RouteList RouteRecognizer (a : subRoutes)
 recognizeRouteAddRoute route (RouteParser parser) =
   let
     runRecognizer (method, pathPieces) = recognizeRoute route method pathPieces
