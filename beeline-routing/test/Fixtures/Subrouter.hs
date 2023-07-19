@@ -41,7 +41,7 @@ rightSubroutePath :: T.Text
 rightSubroutePath =
   "right"
 
-subrouter :: (R.Router r) => r Subroutes
+subrouter :: R.Router r => r Subroutes
 subrouter =
   R.routeList $
     ( R.make LeftSubroute

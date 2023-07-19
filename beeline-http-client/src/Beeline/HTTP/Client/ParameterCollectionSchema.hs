@@ -70,7 +70,7 @@ class ParameterCollectionSchema q where
     ParameterCollectionItem q query (NEL.NonEmpty param)
 
 (?+) ::
-  (ParameterCollectionSchema q) =>
+  ParameterCollectionSchema q =>
   q query (param -> c) ->
   ParameterCollectionItem q query param ->
   q query c
@@ -378,7 +378,7 @@ decodeListParamBytes paramDef mbValues =
     Just values -> fmap DList.toList (traverse (decodeParamBytes paramDef) values)
 
 lookupSingleValue ::
-  (Ord key) =>
+  Ord key =>
   T.Text ->
   key ->
   Map.Map key (DList.DList BS.ByteString) ->

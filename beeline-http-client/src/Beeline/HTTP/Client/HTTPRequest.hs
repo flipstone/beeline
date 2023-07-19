@@ -71,7 +71,7 @@ defaultRequest =
     }
 
 httpRequestThrow ::
-  (Exc.Exception err) =>
+  Exc.Exception err =>
   Operation err route query headers requestBody response ->
   Request route query headers requestBody ->
   HTTP.Manager ->
@@ -80,7 +80,7 @@ httpRequestThrow =
   httpRequestUsing HTTP.withResponse throwStatusAndDecodingErrors
 
 throwStatusAndDecodingErrors ::
-  (Exc.Exception err) =>
+  Exc.Exception err =>
   StatusResult HTTP.BodyReader err response ->
   IO response
 throwStatusAndDecodingErrors statusResult =
@@ -197,7 +197,7 @@ buildHTTPRequest operation request =
       }
 
 handleHTTPResponse ::
-  (Foldable t) =>
+  Foldable t =>
   HTTP.Request ->
   t (StatusRange, ResponseBodySchema err response) ->
   HTTP.Response HTTP.BodyReader ->

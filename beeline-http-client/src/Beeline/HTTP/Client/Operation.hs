@@ -92,7 +92,7 @@ noRequestBody =
     }
 
 requestBody ::
-  (ContentTypeEncoder coder) => coder -> EncodeSchema coder a -> RequestBodySchema a
+  ContentTypeEncoder coder => coder -> EncodeSchema coder a -> RequestBodySchema a
 requestBody coder encoder =
   RequestBodySchema
     { requestBodyContentType = Just (toRequestContentType coder encoder)
@@ -141,7 +141,7 @@ noResponseBody =
     }
 
 responseBody ::
-  (ContentTypeDecoder coder) =>
+  ContentTypeDecoder coder =>
   coder ->
   DecodeSchema coder a ->
   ResponseBodySchema (DecodingError coder) a
@@ -154,21 +154,21 @@ responseBody coder decoder =
 data NoPathParams = NoPathParams
   deriving (Show, Eq)
 
-noPathParams :: (R.Router r) => r NoPathParams
+noPathParams :: R.Router r => r NoPathParams
 noPathParams =
   R.get (R.make NoPathParams)
 
 data NoQueryParams = NoQueryParams
   deriving (Show, Eq)
 
-noQueryParams :: (ParameterCollectionSchema q) => q NoQueryParams NoQueryParams
+noQueryParams :: ParameterCollectionSchema q => q NoQueryParams NoQueryParams
 noQueryParams =
   makeParams NoQueryParams
 
 data NoHeaderParams = NoHeaderParams
   deriving (Show, Eq)
 
-noHeaderParams :: (ParameterCollectionSchema q) => q NoHeaderParams NoHeaderParams
+noHeaderParams :: ParameterCollectionSchema q => q NoHeaderParams NoHeaderParams
 noHeaderParams =
   makeParams NoHeaderParams
 

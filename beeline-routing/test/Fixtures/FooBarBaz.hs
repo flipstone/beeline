@@ -39,7 +39,7 @@ handleFooBarBaz foo bar baz =
           Shrubbery.branch baz $
             Shrubbery.branchEnd
 
-fooBarBazRouter :: (R.Router r) => r FooBarBaz
+fooBarBazRouter :: R.Router r => r FooBarBaz
 fooBarBazRouter =
   R.routeList $
     R.get (R.make Foo /- "foo")

@@ -58,26 +58,26 @@ class Router r where
   subrouter ::
     Builder r route (subrouter -> route) -> Subrouter r route subrouter -> r route
 
-  routeList :: (KnownLength types) => RouteList r types -> r (Union types)
+  routeList :: KnownLength types => RouteList r types -> r (Union types)
   addRoute :: r a -> RouteList r rest -> RouteList r (a : rest)
   emptyRoutes :: RouteList r '[]
 
 (/-) ::
-  (Router r) =>
+  Router r =>
   Builder r route a ->
   Text ->
   Builder r route a
 (/-) = piece
 
 (/+) ::
-  (Router r) =>
+  Router r =>
   Builder r route (a -> b) ->
   Param route a ->
   Builder r route b
 (/+) = param
 
 (/>) ::
-  (Router r) =>
+  Router r =>
   Builder r route (subroute -> route) ->
   Subrouter r route subroute ->
   r route
@@ -87,34 +87,34 @@ infixl 9 />
 infixl 9 /-
 infixl 9 /+
 
-(/:) :: (Router r) => r a -> RouteList r rest -> RouteList r (a : rest)
+(/:) :: Router r => r a -> RouteList r rest -> RouteList r (a : rest)
 (/:) = addRoute
 
 infixr 9 /:
 
-get :: (Router r) => Builder r route route -> r route
+get :: Router r => Builder r route route -> r route
 get = method HTTP.GET
 
-post :: (Router r) => Builder r route route -> r route
+post :: Router r => Builder r route route -> r route
 post = method HTTP.POST
 
-head :: (Router r) => Builder r route route -> r route
+head :: Router r => Builder r route route -> r route
 head = method HTTP.HEAD
 
-put :: (Router r) => Builder r route route -> r route
+put :: Router r => Builder r route route -> r route
 put = method HTTP.PUT
 
-delete :: (Router r) => Builder r route route -> r route
+delete :: Router r => Builder r route route -> r route
 delete = method HTTP.DELETE
 
-trace :: (Router r) => Builder r route route -> r route
+trace :: Router r => Builder r route route -> r route
 trace = method HTTP.TRACE
 
-connect :: (Router r) => Builder r route route -> r route
+connect :: Router r => Builder r route route -> r route
 connect = method HTTP.CONNECT
 
-options :: (Router r) => Builder r route route -> r route
+options :: Router r => Builder r route route -> r route
 options = method HTTP.OPTIONS
 
-patch :: (Router r) => Builder r route route -> r route
+patch :: Router r => Builder r route route -> r route
 patch = method HTTP.PATCH
