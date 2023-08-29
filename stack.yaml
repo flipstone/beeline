@@ -1,4 +1,4 @@
-resolver: lts-21.3
+resolver: lts-21.9
 allow-different-user: true
 system-ghc: true
 install-ghc: false
@@ -17,4 +17,4 @@ flags:
 
 extra-deps:
   - git: https://github.com/flipstone/shrubbery.git
-    commit: 8cd0c45237be047a975d754859fc4b7fb24f49d4 
+    commit: 253a5a954b9117df6b06e32e955f293813db2489
