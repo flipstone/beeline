@@ -36,7 +36,7 @@ when:
 dependencies:
   - base
   - http-types
-  - shrubbery
+  - shrubbery >= 0.1 && < 0.3
   - text
   - scientific >= 0.3 && < 0.4
 

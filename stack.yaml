@@ -17,4 +17,4 @@ flags:
 
 extra-deps:
   - git: https://github.com/flipstone/shrubbery.git
-    commit: 328107d50990f9ba7e63974cabab0575813af2cc 
+    commit: 730255546c2eb99071380db44b5e349318dead68
