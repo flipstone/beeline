@@ -5,15 +5,15 @@
 
 packages:
 - completed:
-    commit: 73bea50a23ec60106eae9aa75a06ee854beb2e71
+    commit: 74bf67fb7e9e797c51380ed0fbafbd744caffb09
     git: https://github.com/flipstone/shrubbery.git
     name: shrubbery
     pantry-tree:
-      sha256: e18a9032ca90d613943b023bdc2b362e42cfb1761c31886f83270e40a54d5095
-      size: 1737
-    version: 0.2.1.0
+      sha256: feb7f7b0064df90a1d7a9594769debd005d34a93b6011f70aa5b6d6381f406e6
+      size: 1739
+    version: 0.2.2.0
   original:
-    commit: 73bea50a23ec60106eae9aa75a06ee854beb2e71
+    commit: 74bf67fb7e9e797c51380ed0fbafbd744caffb09
     git: https://github.com/flipstone/shrubbery.git
 snapshots:
 - completed:

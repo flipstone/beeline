@@ -18,10 +18,10 @@ description:         Please see the README on GitHub at <https://github.com/gith
 dependencies:
 - base >= 4.7 && < 5
 - beeline-routing >= 0.2 && < 0.3
-- bytestring >= 0.11 && < 0.12
+- bytestring >= 0.11 && < 0.13
 - http-client >= 0.7 && < 0.8
 - http-types >= 0.12 && < 0.13
-- text >= 1.2 && < 2.1
+- text >= 1.2 && < 2.2
 
 flags:
   strict:
