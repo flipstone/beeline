@@ -1,6 +1,6 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.36.0.
+-- This file has been generated from package.yaml by hpack version 0.37.0.
 --
 -- see: https://github.com/sol/hpack
 
@@ -38,7 +38,7 @@ library
   build-depends:
       attoparsec
     , base
-    , containers ==0.6.*
+    , containers >=0.6 && <0.8
     , dlist
     , http-types
     , scientific ==0.3.*
@@ -49,6 +49,8 @@ library
     ghc-options: -Weverything -Werror -Wno-missing-local-signatures -Wno-monomorphism-restriction -Wno-missing-kind-signatures -Wno-prepositive-qualified-module -Wno-implicit-prelude -Wno-safe -Wno-unsafe -Wno-missing-safe-haskell-mode -Wno-missing-deriving-strategies -Wno-all-missed-specialisations -Wno-missed-specialisations -Wno-unticked-promoted-constructors
   else
     ghc-options: -Wall
+  if flag(strict) && impl(ghc >= 9.8.1)
+    ghc-options: -Wno-missing-role-annotations -Wno-term-variable-capture
 
 test-suite spec
   type: exitcode-stdio-1.0
@@ -79,3 +81,5 @@ test-suite spec
     ghc-options: -Weverything -Werror -Wno-missing-local-signatures -Wno-monomorphism-restriction -Wno-missing-kind-signatures -Wno-prepositive-qualified-module -Wno-implicit-prelude -Wno-safe -Wno-unsafe -Wno-missing-safe-haskell-mode -Wno-missing-deriving-strategies -Wno-all-missed-specialisations -Wno-missed-specialisations -Wno-unticked-promoted-constructors
   else
     ghc-options: -Wall
+  if flag(strict) && impl(ghc >= 9.8.1)
+    ghc-options: -Wno-missing-role-annotations -Wno-term-variable-capture

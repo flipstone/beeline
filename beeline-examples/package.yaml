@@ -48,6 +48,11 @@ when:
       ghc-options:
         - -Wall
 
+  - condition: flag(strict) && impl(ghc >= 9.8.1)
+    ghc-options:
+      - -Wno-missing-role-annotations
+      - -Wno-term-variable-capture
+
 library:
   source-dirs: src
 

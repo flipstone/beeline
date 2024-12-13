@@ -51,6 +51,11 @@ when:
       ghc-options:
         - -Wall
 
+  - condition: flag(strict) && impl(ghc >= 9.8.1)
+    ghc-options:
+      - -Wno-missing-role-annotations
+      - -Wno-term-variable-capture
+
 library:
   source-dirs: src
   exposed-modules:
@@ -62,7 +67,7 @@ library:
   dependencies:
     - dlist >= 1.0 && < 2.0
     - case-insensitive >= 1.2 && < 1.3
-    - containers >= 0.6 && < 0.7
+    - containers >= 0.6 && < 0.8
     - network-uri >= 2.6 && < 2.7
 
 tests:

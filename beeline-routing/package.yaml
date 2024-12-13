@@ -33,6 +33,11 @@ when:
       ghc-options:
         - -Wall
 
+  - condition: flag(strict) && impl(ghc >= 9.8.1)
+    ghc-options:
+      - -Wno-missing-role-annotations
+      - -Wno-term-variable-capture
+
 dependencies:
   - base
   - http-types
@@ -52,7 +57,7 @@ library:
   dependencies:
     - attoparsec
     - dlist
-    - containers >= 0.6 && < 0.7
+    - containers >= 0.6 && < 0.8
 
 tests:
   spec:
