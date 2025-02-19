@@ -5,7 +5,7 @@ cabal-version: 1.12
 -- see: https://github.com/sol/hpack
 
 name:           beeline-examples
-version:        0.2.1.0
+version:        0.2.1.1
 description:    Please see the README on GitHub at <https://github.com/githubuser/beeline-examples#readme>
 homepage:       https://github.com/flipstone/beeline#readme
 bug-reports:    https://github.com/flipstone/beeline/issues

@@ -1,5 +1,5 @@
 name:                beeline-examples
-version:             0.2.1.0
+version:             0.2.1.1
 github:              "flipstone/beeline/beeline-examples"
 license:             BSD3
 author:              "Author name here"
@@ -55,4 +55,3 @@ when:
 
 library:
   source-dirs: src
-
