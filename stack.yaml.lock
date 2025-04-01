@@ -7,14 +7,14 @@ packages:
 - completed:
     name: shrubbery
     pantry-tree:
-      sha256: 5759b7adbf312f3aeaba79542cfe4165d59b79c12767caea4b04e54d7706f184
-      size: 1739
-    sha256: 72ba35c6f9078f82e9e9e2b008efc457abbcf78b7088f5c51c8f86dbe34d7895
-    size: 25744
-    url: https://github.com/flipstone/shrubbery/archive/40a2bbe88ac99ec6fbad7a40e331a1f624e70850.tar.gz
-    version: 0.2.2.1
+      sha256: 1c4db8a171cbf61e10afa09be518ce3e3c834988e605dc4ddccb8fc635d4eb8b
+      size: 1799
+    sha256: c935a9fbfc3a31c383862b575ff7e085dd1833b609fbf257952d32033f39672e
+    size: 26905
+    url: https://github.com/flipstone/shrubbery/archive/ae5c282af3029179d5ab43a927aecbc8e44971e4.tar.gz
+    version: 0.2.3.0
   original:
-    url: https://github.com/flipstone/shrubbery/archive/40a2bbe88ac99ec6fbad7a40e331a1f624e70850.tar.gz
+    url: https://github.com/flipstone/shrubbery/archive/ae5c282af3029179d5ab43a927aecbc8e44971e4.tar.gz
 snapshots:
 - completed:
     sha256: 6c5aeace2ca5ecde793a9e0acfaa730ec8f384aa2f6183a2a252f5f9ec55d623
