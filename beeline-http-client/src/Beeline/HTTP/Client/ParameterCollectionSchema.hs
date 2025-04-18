@@ -1,5 +1,11 @@
 {-# LANGUAGE TypeFamilies #-}
 
+{- |
+Copyright : Flipstone Technology Partners 2023-2025
+License   : MIT
+
+@since 0.7.0.0
+-}
 module Beeline.HTTP.Client.ParameterCollectionSchema
   ( ParameterCollectionSchema
       ( ParameterCollectionItem
@@ -109,7 +115,7 @@ instance ParameterCollectionSchema QueryEncoder where
   newtype ParameterCollectionItem QueryEncoder query _a = EncodeParam (query -> QueryBuilder)
 
   makeParams _constructor =
-    QueryEncoder (\_a -> mempty)
+    QueryEncoder (const mempty)
 
   addParam (QueryEncoder f) (EncodeParam g) =
     QueryEncoder $ \a -> f a <> g a
@@ -147,15 +153,14 @@ newtype QueryDecoder a b
   = QueryDecoder (QueryMap -> Either T.Text b)
 
 decodeQuery :: QueryDecoder a b -> BS.ByteString -> Either T.Text b
-decodeQuery (QueryDecoder parseMap) query =
+decodeQuery (QueryDecoder parseMap) =
   let
     queryMap =
       Map.fromListWith (flip (<>))
-        . map (fmap (maybe DList.empty DList.singleton))
+        . fmap (fmap (maybe DList.empty DList.singleton))
         . HTTPTypes.parseQuery
-        $ query
   in
-    parseMap queryMap
+    parseMap . queryMap
 
 type QueryMap = Map.Map BS.ByteString (DList.DList BS.ByteString)
 
@@ -242,7 +247,7 @@ instance ParameterCollectionSchema HeaderEncoder where
     = EncodeHeaders (query -> HeaderBuilder)
 
   makeParams _constructor =
-    HeaderEncoder (\_a -> mempty)
+    HeaderEncoder (const mempty)
 
   addParam (HeaderEncoder f) (EncodeHeaders g) =
     HeaderEncoder $ \a -> f a <> g a
@@ -280,14 +285,14 @@ newtype HeaderDecoder a b
   = HeaderDecoder (HeaderMap -> Either T.Text b)
 
 decodeHeaders :: HeaderDecoder a b -> [HTTPTypes.Header] -> Either T.Text b
-decodeHeaders (HeaderDecoder parseMap) headers =
+decodeHeaders (HeaderDecoder parseMap) =
   let
+    queryMap :: Ord k => [(k, a)] -> Map.Map k (DList.DList a)
     queryMap =
       Map.fromListWith (flip (<>))
-        . map (fmap DList.singleton)
-        $ headers
+        . fmap (fmap DList.singleton)
   in
-    parseMap queryMap
+    parseMap . queryMap
 
 type HeaderMap = Map.Map (CI.CI BS.ByteString) (DList.DList BS.ByteString)
 

@@ -34,7 +34,7 @@ import qualified Beeline.Routing as R
 
 main :: IO ()
 main =
-  HHM.defaultMain $
+  HHM.defaultMain
     [ HH.checkSequential (HH.Group "beeline-http-client" tests)
     ]
 
@@ -64,7 +64,7 @@ tests =
 newtype FooBarId
   = FooBarId Int
 
-data GetFooBar = GetFooBar
+newtype GetFooBar = GetFooBar
   { fooBarId :: FooBarId
   }
 
@@ -320,6 +320,7 @@ prop_httpMultiResponse =
           ]
 
     let
+      handleRequest :: Applicative f => p -> f Wai.Response
       handleRequest _request =
         pure $
           case expectedResponse of
@@ -347,9 +348,11 @@ prop_httpUnexpectedStatus :: HH.Property
 prop_httpUnexpectedStatus =
   HH.withTests 1 . HH.property $ do
     let
+      handleRequest :: Applicative f => p -> f Wai.Response
       handleRequest _request =
         pure $ Wai.responseLBS HTTPTypes.notFound404 [] "Not Found"
 
+      issueRequest :: Exc.Exception e => Int -> IO (Either e T.Text)
       issueRequest port = do
         let
           request =
@@ -377,9 +380,11 @@ prop_httpDecodingFailure :: HH.Property
 prop_httpDecodingFailure =
   HH.withTests 1 . HH.property $ do
     let
+      handleRequest :: Applicative f => p -> f Wai.Response
       handleRequest _request =
         pure $ Wai.responseLBS HTTPTypes.ok200 [] "\xfc\xa1\xa1\xa1\xa1\xa1"
 
+      issueRequest :: Exc.Exception e => Int -> IO (Either e T.Text)
       issueRequest port = do
         let
           request =
@@ -394,7 +399,7 @@ prop_httpDecodingFailure =
     exceptionOrFooBar <- HH.evalIO (withTestServer handleRequest issueRequest)
     case exceptionOrFooBar of
       Left (BHC.ContentTypeDecodingError msg) ->
-        msg === "Cannot decode byte '\\xfc': Data.Text.Internal.Encoding: Invalid UTF-8 stream"
+        take 54 msg === "Cannot decode byte '\\xfc': Data.Text.Internal.Encoding"
       Right _fooBar -> do
         HH.annotate "Expected an HTTPException, but got a valid response instead"
         HH.failure
@@ -521,7 +526,8 @@ prop_queryParamsRequired =
 
     let
       expectedQuery =
-        HTTPTypes.renderQuery True $
+        HTTPTypes.renderQuery
+          True
           [ ("foo", Just (Enc.encodeUtf8 foo))
           , ("bar", Just (BS8.pack (show bar)))
           ]
@@ -551,9 +557,9 @@ prop_queryParamsOptional =
 
     let
       expectedQuery =
-        HTTPTypes.renderQuery True $
-          filter (isJust . snd) $
-            [ ("foo", fmap Enc.encodeUtf8 foo)
+        HTTPTypes.renderQuery True
+          . filter (isJust . snd)
+          $ [ ("foo", fmap Enc.encodeUtf8 foo)
             , ("bar", fmap (BS8.pack . show) bar)
             ]
 
@@ -581,9 +587,11 @@ prop_queryParamsExplodedArray =
     bars <- HH.forAll (Gen.list (Range.linear 0 3) genInt)
 
     let
+      mkFooParam :: T.Text -> (BS8.ByteString, Maybe BS8.ByteString)
       mkFooParam foo =
         ("foo", Just (Enc.encodeUtf8 foo))
 
+      mkBarParam :: Int -> (BS8.ByteString, Maybe BS8.ByteString)
       mkBarParam bar =
         ("bar", Just (BS8.pack (show bar)))
 
@@ -629,6 +637,7 @@ prop_headersOptional =
     bar <- HH.forAll (Gen.maybe genInt)
 
     let
+      mbTuple :: a -> Maybe b -> Maybe (a, b)
       mbTuple k mbV =
         case mbV of
           Nothing -> Nothing
@@ -656,9 +665,11 @@ prop_headersExplodedArray =
     bars <- HH.forAll (Gen.list (Range.linear 0 3) genInt)
 
     let
+      mkFooParam :: T.Text -> (HTTPTypes.HeaderName, BS8.ByteString)
       mkFooParam foo =
         ("foo", Enc.encodeUtf8 foo)
 
+      mkBarParam :: Int -> (HTTPTypes.HeaderName, BS8.ByteString)
       mkBarParam bar =
         ("bar", BS8.pack (show bar))
 

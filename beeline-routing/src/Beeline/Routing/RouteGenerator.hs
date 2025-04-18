@@ -1,6 +1,12 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeFamilies #-}
 
+{- |
+Copyright : Flipstone Technology Partners 2021-2025
+License   : MIT
+
+@since 0.1.0.0
+-}
 module Beeline.Routing.RouteGenerator
   ( RouteGenerator (..)
   , generateRoute
@@ -52,7 +58,7 @@ generateRouteMake ::
   a ->
   Router.Builder RouteGenerator route a
 generateRouteMake _constructor =
-  Builder $ \_route -> DList.empty
+  Builder $ const DList.empty
 
 generateRoutePiece ::
   Router.Builder RouteGenerator route a ->

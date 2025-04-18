@@ -1,7 +1,5 @@
-resolver: lts-22.39
+resolver: lts-19.33
 allow-different-user: true
-system-ghc: true
-install-ghc: false
 packages:
   - beeline-routing
   - beeline-http-client
@@ -18,8 +16,3 @@ flags:
 extra-deps:
   - github: flipstone/shrubbery
     commit: 6dd2236be034f691bd6663d03961750af603c616
-  - git: https://github.com/flipstone/henforcer.git
-    commit: f3c2b1e461a37e7ff88d795379edd7386bfa8557
-  - pollock-0.1.0.3
-  - tomland-1.3.3.3
-  - validation-selective-0.2.0.0

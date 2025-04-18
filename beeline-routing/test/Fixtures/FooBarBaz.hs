@@ -15,7 +15,7 @@ module Fixtures.FooBarBaz
 import Data.Text (Text)
 import qualified Hedgehog as HH
 import qualified Hedgehog.Gen as Gen
-import qualified Shrubbery as Shrubbery
+import qualified Shrubbery
 
 import Beeline.Routing ((/-), (/:))
 import qualified Beeline.Routing as R
@@ -32,12 +32,12 @@ fooBarBazToText =
 
 handleFooBarBaz :: (Foo -> a) -> (Bar -> a) -> (Baz -> a) -> FooBarBaz -> a
 handleFooBarBaz foo bar baz =
-  Shrubbery.dissect $
-    Shrubbery.branchBuild $
-      Shrubbery.branch foo $
-        Shrubbery.branch bar $
-          Shrubbery.branch baz $
-            Shrubbery.branchEnd
+  Shrubbery.dissect
+    . Shrubbery.branchBuild
+    . Shrubbery.branch foo
+    . Shrubbery.branch bar
+    . Shrubbery.branch baz
+    $ Shrubbery.branchEnd
 
 fooBarBazRouter :: R.Router r => r FooBarBaz
 fooBarBazRouter =

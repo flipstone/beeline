@@ -5,45 +5,57 @@ author: "Flipstone Technology Partners"
 maintainer: "development@flipstone.com"
 github: "flipstone/beeline/beeline-routing"
 
+
+description:         Please see the README on GitHub at <https://github.com/flipstone/beeline#readme>
+tested-with:
+    GHC == 8.10.7, GHC == 9.0.2, GHC == 9.2.8, GHC == 9.4.8, GHC == 9.6.6, GHC == 9.8.4, GHC == 9.10.1
+
 flags:
-  strict:
+  ci:
     description: More strict ghc options used for development and ci, not intended for end-use.
     manual: true
     default: false
 
 when:
-  - condition: flag(strict)
-    then:
-      ghc-options:
-        - -Weverything
-        - -Werror
-        - -Wno-missing-local-signatures
-        - -Wno-monomorphism-restriction
-        - -Wno-missing-kind-signatures
-        - -Wno-prepositive-qualified-module
-        - -Wno-implicit-prelude
-        - -Wno-safe
-        - -Wno-unsafe
-        - -Wno-missing-safe-haskell-mode
-        - -Wno-missing-deriving-strategies
-        - -Wno-all-missed-specialisations
-        - -Wno-missed-specialisations
-        - -Wno-unticked-promoted-constructors
-    else:
-      ghc-options:
-        - -Wall
-
-  - condition: flag(strict) && impl(ghc >= 9.8.1)
+  - condition: flag(ci)
     ghc-options:
-      - -Wno-missing-role-annotations
-      - -Wno-term-variable-capture
-
-dependencies:
-  - base
-  - http-types
-  - shrubbery >= 0.1 && < 0.3
-  - text
-  - scientific >= 0.3 && < 0.4
+        - -O2
+        - -Wall
+        - -Werror
+        - -Wcompat
+        - -fwrite-ide-info
+        - -hiedir=.hie
+        - -Widentities
+        - -Wmissed-specialisations
+        - -Wmissing-local-signatures
+        - -Wmissing-export-lists
+        - -Wpartial-fields
+        - -Wunused-packages
+    when:
+        - condition: impl (ghc >= 9.0)
+          ghc-options:
+            - -Winvalid-haddock
+        - condition: impl (ghc >= 9.2)
+          ghc-options:
+            - -Wimplicit-lift
+            - -Woperator-whitespace
+            - -Wredundant-bang-patterns
+        - condition: impl (ghc >= 9.4)
+          ghc-options:
+            - -Wredundant-strictness-flags
+        - condition: impl (ghc >= 9.6)
+          dependencies:
+            - henforcer
+          ghc-options:
+            - -fplugin Henforcer
+        - condition: impl (ghc >= 9.8)
+          ghc-options:
+            - -Wincomplete-export-warnings
+            - -Wmissing-poly-kind-signatures
+            - -Wterm-variable-capture
+        - condition: impl (ghc >= 9.10)
+          ghc-options:
+            - -Wdefaulted-exception-context
 
 library:
   source-dirs: src
@@ -55,9 +67,14 @@ library:
     - Beeline.Routing.Router
     - Beeline.Routing.RouteRecognizer
   dependencies:
-    - attoparsec
-    - dlist
-    - containers >= 0.6 && < 0.8
+    - attoparsec >= 0.13 && < 0.15
+    - base >= 4.7 && < 5
+    - containers >= 0.6 && < 0.9
+    - dlist >= 1.0 && < 1.1
+    - http-types >= 0.12 && < 0.13
+    - scientific >= 0.3 && < 0.4
+    - shrubbery >= 0.1 && < 0.3
+    - text >= 1.2 && < 2.2
 
 tests:
   spec:
@@ -67,5 +84,11 @@ tests:
       - base
       - beeline-routing
       - hedgehog
-    ghc-options:
-      - -j
+      - http-types
+      - scientific >= 0.3 && < 0.4
+      - shrubbery >= 0.1 && < 0.3
+      - text
+    when:
+      - condition: flag(ci)
+        ghc-options:
+          - -j

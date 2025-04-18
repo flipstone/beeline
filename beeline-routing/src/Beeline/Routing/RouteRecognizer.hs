@@ -4,6 +4,12 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeOperators #-}
 
+{- |
+Copyright : Flipstone Technology Partners 2021-2025
+License   : MIT
+
+@since 0.1.0.0
+-}
 module Beeline.Routing.RouteRecognizer
   ( RouteRecognizer (..)
   ) where
@@ -77,12 +83,12 @@ recognizeRouteMethod ::
 recognizeRouteMethod expectedMethod (Builder recognizePieces) =
   RouteRecognizer $ \method pieces -> do
     (route, remainingPieces) <- recognizePieces pieces
-    case remainingPieces of
-      [] ->
+    if null remainingPieces
+      then
         if method == expectedMethod
           then Right route
           else Left "Different method expected"
-      _ -> Left "Path not finished"
+      else Left "Path not finished"
 
 recognizeRouteSubrouter ::
   Router.Builder RouteRecognizer route (subroute -> route) ->

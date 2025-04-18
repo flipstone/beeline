@@ -1,3 +1,9 @@
+{- |
+Copyright : Flipstone Technology Partners 2021-2025
+License   : MIT
+
+@since 0.1.0.0
+-}
 module Beeline.Routing.ParameterDefinition
   ( ParameterDefinition (..)
   , textParam
@@ -22,7 +28,9 @@ import Control.Applicative ((<|>))
 import Control.Monad ((<=<))
 import qualified Data.Attoparsec.Text as Atto
 import qualified Data.Bifunctor as Bifunctor
+import Data.Bool (bool)
 import Data.Coerce (Coercible, coerce)
+import Data.Functor (($>))
 import Data.Int (Int16, Int32, Int64, Int8)
 import qualified Data.Map.Strict as Map
 import Data.Scientific (Scientific, fromFloatDigits, toRealFloat)
@@ -91,14 +99,12 @@ booleanParam name =
   let
     trueText = T.pack "true"
     falseText = T.pack "false"
-    parseTrue = Atto.asciiCI trueText *> pure True
-    parseFalse = Atto.asciiCI falseText *> pure False
+    parseTrue = Atto.asciiCI trueText $> True
+    parseFalse = Atto.asciiCI falseText $> False
     parseBool = parseTrue <|> parseFalse
 
-    renderBool bool =
-      case bool of
-        True -> trueText
-        False -> falseText
+    renderBool =
+      bool trueText falseText
   in
     parsedParam name parseBool renderBool
 
@@ -111,7 +117,7 @@ boundedEnumParam toText =
   let
     parsingMap =
       Map.fromList
-        . map (\enum -> (toText enum, enum))
+        . fmap (\enum -> (toText enum, enum))
         $ [minBound .. maxBound]
 
     parseEnum text =
@@ -123,10 +129,7 @@ boundedEnumParam toText =
 
 integralParam :: Integral n => Text -> ParameterDefinition n
 integralParam name =
-  parsedParam
-    name
-    (Atto.signed Atto.decimal)
-    (LT.toStrict . LTB.toLazyText . LTBI.decimal)
+  parsedParam name (Atto.signed Atto.decimal) (LT.toStrict . LTB.toLazyText . LTBI.decimal)
 
 coerceParam :: Coercible a b => ParameterDefinition b -> ParameterDefinition a
 coerceParam =

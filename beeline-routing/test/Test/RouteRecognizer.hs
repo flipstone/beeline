@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE OverloadedStrings #-}
 
@@ -5,6 +6,9 @@ module Test.RouteRecognizer
   ( tests
   ) where
 
+#if __GLASGOW_HASKELL__ < 910
+import Data.Foldable (foldl')
+#endif
 import Data.Text (Text)
 import Hedgehog ((===))
 import qualified Hedgehog as HH
@@ -40,7 +44,7 @@ prop_piece =
     let
       recognizer =
         R.method method $
-          foldl
+          foldl'
             R.piece
             (R.make SimpleNoArgRoute)
             path

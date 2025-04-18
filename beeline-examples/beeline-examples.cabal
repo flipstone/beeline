@@ -1,6 +1,6 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.37.0.
+-- This file has been generated from package.yaml by hpack version 0.38.0.
 --
 -- see: https://github.com/sol/hpack
 
@@ -20,7 +20,7 @@ source-repository head
   location: https://github.com/flipstone/beeline
   subdir: beeline-examples
 
-flag strict
+flag ci
   description: More strict ghc options used for development and ci, not intended for end-use.
   manual: True
   default: False
@@ -37,9 +37,15 @@ library
     , beeline-routing >=0.2.1 && <0.3
     , shrubbery >=0.1 && <0.3
   default-language: Haskell2010
-  if flag(strict)
-    ghc-options: -Weverything -Werror -Wno-missing-local-signatures -Wno-monomorphism-restriction -Wno-missing-kind-signatures -Wno-prepositive-qualified-module -Wno-implicit-prelude -Wno-safe -Wno-unsafe -Wno-missing-safe-haskell-mode -Wno-missing-deriving-strategies -Wno-all-missed-specialisations -Wno-missed-specialisations -Wno-unticked-promoted-constructors
-  else
-    ghc-options: -Wall
-  if flag(strict) && impl(ghc >= 9.8.1)
-    ghc-options: -Wno-missing-role-annotations -Wno-term-variable-capture
+  if flag(ci)
+    ghc-options: -O2 -Wall -Werror -Wcompat -Widentities -Wmissed-specialisations -Wmissing-local-signatures -Wmissing-export-lists -Wpartial-fields -Wunused-packages
+    if impl (ghc >= 9.0)
+      ghc-options: -Winvalid-haddock
+    if impl (ghc >= 9.2)
+      ghc-options: -Wimplicit-lift -Woperator-whitespace -Wredundant-bang-patterns
+    if impl (ghc >= 9.4)
+      ghc-options: -Wredundant-strictness-flags
+    if impl (ghc >= 9.8)
+      ghc-options: -Wincomplete-export-warnings -Wmissing-poly-kind-signatures -Wterm-variable-capture
+    if impl (ghc >= 9.10)
+      ghc-options: -Wdefaulted-exception-context

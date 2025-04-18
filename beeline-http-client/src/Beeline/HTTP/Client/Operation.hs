@@ -1,5 +1,11 @@
 {-# LANGUAGE OverloadedStrings #-}
 
+{- |
+Copyright : Flipstone Technology Partners 2023-2025
+License   : MIT
+
+@since 0.3.0.0
+-}
 module Beeline.HTTP.Client.Operation
   ( Operation
       ( Operation
@@ -88,7 +94,7 @@ noRequestBody :: RequestBodySchema NoRequestBody
 noRequestBody =
   RequestBodySchema
     { requestBodyContentType = Nothing
-    , encodeRequestBody = (\NoRequestBody -> "")
+    , encodeRequestBody = \NoRequestBody -> ""
     }
 
 requestBody ::

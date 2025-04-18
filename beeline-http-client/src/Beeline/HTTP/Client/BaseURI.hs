@@ -1,3 +1,9 @@
+{- |
+Copyright : Flipstone Technology Partners 2023-2025
+License   : MIT
+
+@since 0.6.1.0
+-}
 module Beeline.HTTP.Client.BaseURI
   ( BaseURI (BaseURI, host, port, basePath, secure)
   , defaultBaseURI

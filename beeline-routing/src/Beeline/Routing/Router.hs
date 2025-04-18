@@ -2,6 +2,12 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeOperators #-}
 
+{- |
+Copyright : Flipstone Technology Partners 2023-2025
+License   : MIT
+
+@since 0.1.0.0
+-}
 module Beeline.Routing.Router
   ( Router (..)
   , Param (..)
@@ -23,11 +29,11 @@ module Beeline.Routing.Router
 
 import Data.Kind (Type)
 import Data.Text (Text)
+import qualified Network.HTTP.Types as HTTP
 import Shrubbery (Union)
 import Shrubbery.TypeList (KnownLength)
 
 import Beeline.Routing.ParameterDefinition (ParameterDefinition)
-import qualified Network.HTTP.Types as HTTP
 
 data Param route a = Param
   { paramDefinition :: ParameterDefinition a
@@ -56,7 +62,7 @@ class Router r where
     HTTP.StdMethod -> Builder r route route -> r route
 
   subrouter ::
-    Builder r route (subrouter -> route) -> Subrouter r route subrouter -> r route
+    Builder r route (subroute -> route) -> Subrouter r route subroute -> r route
 
   routeList :: KnownLength types => RouteList r types -> r (Union types)
   addRoute :: r a -> RouteList r rest -> RouteList r (a : rest)

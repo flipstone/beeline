@@ -2,6 +2,12 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeFamilies #-}
 
+{- |
+Copyright : Flipstone Technology Partners 2021-2025
+License   : MIT
+
+@since 0.1.0.0
+-}
 module Beeline.Routing.RouteDocumenter
   ( RouteDocumenter (..)
   , documentRoutes
@@ -22,12 +28,12 @@ newtype RouteDocumenter route = RouteDocumenter
   }
 
 documentRoutes :: RouteDocumenter route -> [(HTTP.StdMethod, Text)]
-documentRoutes documenter =
-  let
-    mkPath (method, pieces) =
-      (method, "/" <> T.intercalate "/" (DList.toList pieces))
-  in
-    map mkPath (documentSubroutes documenter)
+documentRoutes =
+  fmap mkPath . documentSubroutes
+
+mkPath :: (a, DList.DList Text) -> (a, Text)
+mkPath (method, pieces) =
+  (method, "/" <> T.intercalate "/" (DList.toList pieces))
 
 instance Router.Router RouteDocumenter where
   newtype RouteList RouteDocumenter _subRoutes
@@ -58,21 +64,20 @@ documentRoutePiece ::
   Router.Builder RouteDocumenter route a ->
   Text ->
   Router.Builder RouteDocumenter route a
-documentRoutePiece (Builder pieces) pieceText =
-  Builder $
-    DList.snoc pieces pieceText
+documentRoutePiece (Builder pieces) =
+  Builder
+    . DList.snoc pieces
 
 documentRouteParam ::
   Router.Builder RouteDocumenter route (param -> a) ->
   Router.Param route param ->
   Router.Builder RouteDocumenter route a
 documentRouteParam (Builder pieces) (Router.Param paramDef _) =
-  Builder $
-    let
-      paramText =
-        "{" <> parameterName paramDef <> "}"
-    in
-      DList.snoc pieces paramText
+  let
+    paramText =
+      "{" <> parameterName paramDef <> "}"
+  in
+    Builder $ DList.snoc pieces paramText
 
 documentRouteMethod ::
   HTTP.StdMethod ->
@@ -86,12 +91,8 @@ documentRouteSubrouter ::
   Router.Subrouter RouteDocumenter route subroute ->
   RouteDocumenter route
 documentRouteSubrouter (Builder pieces) (Router.Subrouter subrouter _accessor) =
-  RouteDocumenter $
-    let
-      subroutes =
-        documentSubroutes subrouter
-
-      prependPieces (method, rest) =
-        (method, pieces <> rest)
-    in
-      map prependPieces subroutes
+  let
+    prependPieces (method, rest) =
+      (method, pieces <> rest)
+  in
+    RouteDocumenter . fmap prependPieces $ documentSubroutes subrouter

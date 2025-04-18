@@ -21,37 +21,44 @@ dependencies:
 - beeline-routing >= 0.2.1 && < 0.3
 
 flags:
-  strict:
+  ci:
     description: More strict ghc options used for development and ci, not intended for end-use.
     manual: true
     default: false
 
 when:
-  - condition: flag(strict)
-    then:
-      ghc-options:
-        - -Weverything
-        - -Werror
-        - -Wno-missing-local-signatures
-        - -Wno-monomorphism-restriction
-        - -Wno-missing-kind-signatures
-        - -Wno-prepositive-qualified-module
-        - -Wno-implicit-prelude
-        - -Wno-safe
-        - -Wno-unsafe
-        - -Wno-missing-safe-haskell-mode
-        - -Wno-missing-deriving-strategies
-        - -Wno-all-missed-specialisations
-        - -Wno-missed-specialisations
-        - -Wno-unticked-promoted-constructors
-    else:
-      ghc-options:
-        - -Wall
-
-  - condition: flag(strict) && impl(ghc >= 9.8.1)
+  - condition: flag(ci)
     ghc-options:
-      - -Wno-missing-role-annotations
-      - -Wno-term-variable-capture
+        - -O2
+        - -Wall
+        - -Werror
+        - -Wcompat
+        - -Widentities
+        - -Wmissed-specialisations
+        - -Wmissing-local-signatures
+        - -Wmissing-export-lists
+        - -Wpartial-fields
+        - -Wunused-packages
+    when:
+        - condition: impl (ghc >= 9.0)
+          ghc-options:
+            - -Winvalid-haddock
+        - condition: impl (ghc >= 9.2)
+          ghc-options:
+            - -Wimplicit-lift
+            - -Woperator-whitespace
+            - -Wredundant-bang-patterns
+        - condition: impl (ghc >= 9.4)
+          ghc-options:
+            - -Wredundant-strictness-flags
+        - condition: impl (ghc >= 9.8)
+          ghc-options:
+            - -Wincomplete-export-warnings
+            - -Wmissing-poly-kind-signatures
+            - -Wterm-variable-capture
+        - condition: impl (ghc >= 9.10)
+          ghc-options:
+            - -Wdefaulted-exception-context
 
 library:
   source-dirs: src

@@ -5,6 +5,7 @@ services:
       - .:${PROJECT_DIR}
       - flipstone_stack_root:/stack-root
     working_dir: ${PROJECT_DIR}
+    tty: true
     environment:
       STACK_ROOT: /stack-root
       IN_DEV_CONTAINER: "true"

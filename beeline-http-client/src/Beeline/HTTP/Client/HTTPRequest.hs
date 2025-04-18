@@ -1,5 +1,11 @@
 {-# LANGUAGE OverloadedStrings #-}
 
+{- |
+Copyright : Flipstone Technology Partners 2023-2025
+License   : MIT
+
+@since 0.1.3.0
+-}
 module Beeline.HTTP.Client.HTTPRequest
   ( httpRequest
   , httpRequestThrow
@@ -105,6 +111,7 @@ httpRequest ::
   IO (StatusResult () err response)
 httpRequest =
   let
+    removeUnexpectedBody :: Applicative f => StatusResult a err response -> f (StatusResult () err response)
     removeUnexpectedBody statusResult =
       pure $
         case statusResult of
@@ -175,7 +182,7 @@ buildHTTPRequest operation request =
         [ HTTP.requestHeaders incompleteRequest
         , encodeHeaders headerSchema (headers request)
         , additionalHeaders request
-        , maybe [] (\ct -> [(HTTPTypes.hContentType, ct)]) (requestBodyContentType rqBodySchema)
+        , foldMap (\ct -> [(HTTPTypes.hContentType, ct)]) (requestBodyContentType rqBodySchema)
         , acceptHeaders
         ]
 

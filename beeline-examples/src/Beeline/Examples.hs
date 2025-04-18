@@ -93,15 +93,15 @@ data CreateItem = CreateItem
 
 newtype ItemId = ItemId Int
 
-data GetItem = GetItem
+newtype GetItem = GetItem
   { getItemId :: ItemId
   }
 
-data UpdateItem = UpdateItem
+newtype UpdateItem = UpdateItem
   { updateItemId :: ItemId
   }
 
-data DeleteItem = DeleteItem
+newtype DeleteItem = DeleteItem
   { deleteItemId :: ItemId
   }
 

@@ -60,11 +60,11 @@ subrouteToText =
 
 subrouteToPieces :: Subroutes -> [T.Text]
 subrouteToPieces =
-  Shrubbery.dissect $
-    Shrubbery.branchBuild $
-      Shrubbery.branch (\(LeftSubroute r) -> [leftSubroutePath, FooBarBaz.fooBarBazToText r]) $
-        Shrubbery.branch (\(RightSubroute r) -> [rightSubroutePath, FooBarBaz.fooBarBazToText r]) $
-          Shrubbery.branchEnd
+  Shrubbery.dissect
+    . Shrubbery.branchBuild
+    . Shrubbery.branch (\(LeftSubroute r) -> [leftSubroutePath, FooBarBaz.fooBarBazToText r])
+    . Shrubbery.branch (\(RightSubroute r) -> [rightSubroutePath, FooBarBaz.fooBarBazToText r])
+    $ Shrubbery.branchEnd
 
 genSubroutes :: HH.Gen Subroutes
 genSubroutes = do
@@ -73,6 +73,6 @@ genSubroutes = do
 
 exampleRouteLeftFoo :: Subroutes
 exampleRouteLeftFoo =
-  Shrubbery.unify $
-    LeftSubroute $
-      Shrubbery.unify FooBarBaz.Foo
+  Shrubbery.unify
+    . LeftSubroute
+    $ Shrubbery.unify FooBarBaz.Foo

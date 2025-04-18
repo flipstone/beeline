@@ -1,0 +1,26 @@
+[forAnyModule]
+allowedOpenUnaliasedImports = 1
+#maximumExportsPlusHeaderUndocumented = 1
+minimumExportsPlusHeaderDocumented = 0
+#maximumExportsWithoutSince = 1
+minimumExportsWithSince = 0
+moduleHeaderCopyrightMustExistNonEmpty = true
+moduleHeaderDescriptionMustExistNonEmpty = false
+moduleHeaderLicenseMustExistNonEmpty = true
+moduleHeaderMaintainerMustExistNonEmpty = false
+[[forPatternModules]]
+pattern = "Paths_*"
+[forPatternModules.rulesToIgnore]
+all = true
+[[forPatternModules]]
+pattern = "Fixtures.*"
+[forPatternModules.rulesToIgnore]
+all = true
+[[forPatternModules]]
+pattern = "Test.*"
+[forPatternModules.rulesToIgnore]
+all = true
+[[forSpecifiedModules]]
+module = "Main"
+[forSpecifiedModules.rulesToIgnore]
+all = true

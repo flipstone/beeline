@@ -1,19 +1,11 @@
-#!/usr/bin/env bash
+#!/bin/sh
 
-set -e
+set -o errexit
 
-source scripts/lib/run-in-container.sh
-
-STACK_OPTIONS=""
+. scripts/lib/run-in-container.sh
 
 if [ "$CI" ]; then
-  STACK_OPTIONS="--lock-file error-on-write"
+  stack --lock-file error-on-write test "$@"
 else
-  STACK_OPTIONS="--fast"
+  stack test --fast "$@"
 fi
-
-stack \
-  build \
-  --test \
-  $STACK_OPTIONS \
-  "$@"

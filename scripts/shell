@@ -1,6 +1,7 @@
-#!/usr/bin/env bash
+#!/bin/sh
 
-set -e
+set -o errexit
 
-source scripts/lib/run-in-container.sh
+. scripts/lib/run-in-container.sh
+
 exec bash "$@"

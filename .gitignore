@@ -1,2 +1,6 @@
 .stack-work
 .env
+*~
+dist-newstyle/
+test-all-logs/
+.hie/
