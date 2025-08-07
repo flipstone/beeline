@@ -4,8 +4,8 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 
-name:           beeline-routing
-version:        0.3.0.0
+name:           beeline-params
+version:        0.1.0.0
 description:    Please see the README on GitHub at <https://github.com/flipstone/beeline#readme>
 homepage:       https://github.com/flipstone/beeline#readme
 bug-reports:    https://github.com/flipstone/beeline/issues
@@ -20,7 +20,7 @@ tested-with:
 source-repository head
   type: git
   location: https://github.com/flipstone/beeline
-  subdir: beeline-routing
+  subdir: beeline-params
 
 flag ci
   description: More strict ghc options used for development and ci, not intended for end-use.
@@ -29,21 +29,27 @@ flag ci
 
 library
   exposed-modules:
-      Beeline.Routing
-      Beeline.Routing.RouteDocumenter
-      Beeline.Routing.RouteGenerator
-      Beeline.Routing.Router
-      Beeline.Routing.RouteRecognizer
+      Beeline.Params
+      Beeline.Params.CookieSchema
+      Beeline.Params.HeaderSchema
+      Beeline.Params.ParameterDefinition
+      Beeline.Params.ParameterSchema
+      Beeline.Params.QuerySchema
   other-modules:
-      Paths_beeline_routing
+      Beeline.Params.Internal.ParamLookup
+      Paths_beeline_params
   hs-source-dirs:
       src
   build-depends:
-      base >=4.7 && <5
-    , beeline-params ==0.1.*
+      attoparsec >=0.13 && <0.15
+    , base >=4.7 && <5
+    , bytestring >=0.10 && <0.13
+    , case-insensitive ==1.2.*
+    , containers >=0.6 && <0.9
+    , cookie ==0.4.*
     , dlist ==1.0.*
     , http-types ==0.12.*
-    , shrubbery >=0.1 && <0.3
+    , scientific ==0.3.*
     , text >=1.2 && <2.2
   default-language: Haskell2010
   if flag(ci)
@@ -63,26 +69,25 @@ library
     if impl (ghc >= 9.10)
       ghc-options: -Wdefaulted-exception-context
 
-test-suite beeline-routing-test
+test-suite beeline-params-test
   type: exitcode-stdio-1.0
   main-is: Main.hs
   other-modules:
-      Fixtures.FooBarBaz
-      Fixtures.SimpleNoArgRoute
-      Fixtures.Subrouter
-      Fixtures.TextParam
-      Test.RouteDocumenter
-      Test.RouteGenerator
-      Test.RouteRecognizer
-      Paths_beeline_routing
+      Test.CookieSchema
+      Test.HeaderSchema
+      Test.ParameterDefinition
+      Test.QuerySchema
+      Paths_beeline_params
   hs-source-dirs:
       test
   build-depends:
       base
-    , beeline-routing
+    , beeline-params
+    , bytestring
+    , cookie
     , hedgehog
     , http-types
-    , shrubbery >=0.1 && <0.3
+    , scientific ==0.3.*
     , text
   default-language: Haskell2010
   if flag(ci)

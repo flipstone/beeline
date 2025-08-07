@@ -1,11 +1,11 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.38.0.
+-- This file has been generated from package.yaml by hpack version 0.37.0.
 --
 -- see: https://github.com/sol/hpack
 
 name:           beeline-http-client
-version:        0.8.0.1
+version:        0.9.0.0
 description:    Please see the README on GitHub at <https://github.com/githubuser/json-fleece-http#readme>
 homepage:       https://github.com/flipstone/beeline#readme
 bug-reports:    https://github.com/flipstone/beeline/issues
@@ -33,7 +33,6 @@ library
       Beeline.HTTP.Client
       Beeline.HTTP.Client.Body
       Beeline.HTTP.Client.ContentType
-      Beeline.HTTP.Client.ParameterCollectionSchema
       Beeline.HTTP.Client.Operation
   other-modules:
       Beeline.HTTP.Client.BaseURI
@@ -43,11 +42,10 @@ library
       src
   build-depends:
       base >=4.7 && <5
-    , beeline-routing ==0.2.*
+    , beeline-params ==0.1.*
+    , beeline-routing ==0.3.*
     , bytestring >=0.10 && <0.13
-    , case-insensitive ==1.2.*
     , containers >=0.6 && <0.9
-    , dlist ==1.0.*
     , http-client >=0.6 && <0.8
     , http-types ==0.12.*
     , network-uri ==2.6.*
@@ -72,7 +70,7 @@ library
 
 test-suite beeline-http-client-test
   type: exitcode-stdio-1.0
-  main-is: Spec.hs
+  main-is: Main.hs
   other-modules:
       Paths_beeline_http_client
   hs-source-dirs:
@@ -81,7 +79,8 @@ test-suite beeline-http-client-test
   build-depends:
       base >=4.7 && <5
     , beeline-http-client
-    , beeline-routing ==0.2.*
+    , beeline-params ==0.1.*
+    , beeline-routing ==0.3.*
     , bytestring >=0.10 && <0.13
     , hedgehog
     , http-client >=0.6 && <0.8

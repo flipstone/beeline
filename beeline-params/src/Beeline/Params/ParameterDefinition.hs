@@ -4,8 +4,9 @@ License   : MIT
 
 @since 0.1.0.0
 -}
-module Beeline.Routing.ParameterDefinition
+module Beeline.Params.ParameterDefinition
   ( ParameterDefinition (..)
+  , ParameterType (..)
   , textParam
   , integralParam
   , integerParam
@@ -43,59 +44,85 @@ import qualified Data.Text.Lazy.Builder.RealFloat as LTBF
 
 data ParameterDefinition param = ParameterDefinition
   { parameterName :: Text
+  , parameterType :: ParameterType
+  , parameterFormat :: Maybe Text
   , parameterParser :: Text -> Either Text param
   , parameterRenderer :: param -> Text
   }
+
+{- |
+  The primitive parameter types that are currently supported.
+  These correspond to the parameter types defined by open api,
+  except that null, object and array are omitted. Array's are
+  supported in Query and Header params via parameter collection
+  schemas. Objects, enums and nulls are not supported at this time.
+-}
+data ParameterType
+  = ParameterString
+  | ParameterNumber
+  | ParameterInteger
+  | ParameterBoolean
 
 textParam :: Text -> ParameterDefinition Text
 textParam name =
   ParameterDefinition
     { parameterName = name
+    , parameterType = ParameterString
+    , parameterFormat = Nothing
     , parameterParser = Right
     , parameterRenderer = id
     }
 
 integerParam :: Text -> ParameterDefinition Integer
 integerParam =
-  integralParam
+  integralParam ParameterInteger Nothing
 
 intParam :: Text -> ParameterDefinition Int
 intParam =
-  integralParam
+  integralParam ParameterInteger Nothing
 
 int8Param :: Text -> ParameterDefinition Int8
 int8Param =
-  integralParam
+  integralParam ParameterInteger (Just (T.pack "int8"))
 
 int16Param :: Text -> ParameterDefinition Int16
 int16Param =
-  integralParam
+  integralParam ParameterInteger (Just (T.pack "int16"))
 
 int32Param :: Text -> ParameterDefinition Int32
 int32Param =
-  integralParam
+  integralParam ParameterInteger (Just (T.pack "int32"))
 
 int64Param :: Text -> ParameterDefinition Int64
 int64Param =
-  integralParam
+  integralParam ParameterInteger (Just (T.pack "int64"))
 
 scientificParam :: Text -> ParameterDefinition Scientific
-scientificParam name =
-  parsedParam name Atto.scientific (T.pack . show)
+scientificParam =
+  parsedParam
+    ParameterNumber
+    Nothing
+    Atto.scientific
+    (T.pack . show)
 
 doubleParam :: Text -> ParameterDefinition Double
-doubleParam name =
+doubleParam =
   parsedParam
-    name
+    ParameterNumber
+    (Just (T.pack "double"))
     Atto.double
     (LT.toStrict . LTB.toLazyText . LTBF.realFloat)
 
 floatParam :: Text -> ParameterDefinition Float
 floatParam =
-  convertParam (Right . toRealFloat) fromFloatDigits . scientificParam
+  convertParam
+    (Just (T.pack "float"))
+    (Right . toRealFloat)
+    fromFloatDigits
+    . scientificParam
 
 booleanParam :: Text -> ParameterDefinition Bool
-booleanParam name =
+booleanParam =
   let
     trueText = T.pack "true"
     falseText = T.pack "false"
@@ -106,7 +133,7 @@ booleanParam name =
     renderBool =
       bool trueText falseText
   in
-    parsedParam name parseBool renderBool
+    parsedParam ParameterBoolean Nothing parseBool renderBool
 
 boundedEnumParam ::
   (Enum a, Bounded a) =>
@@ -125,22 +152,33 @@ boundedEnumParam toText =
         Just enum -> Right enum
         Nothing -> Left (T.pack "Invalid enum value: " <> text)
   in
-    convertParam parseEnum toText . textParam
+    convertParam Nothing parseEnum toText . textParam
 
-integralParam :: Integral n => Text -> ParameterDefinition n
-integralParam name =
-  parsedParam name (Atto.signed Atto.decimal) (LT.toStrict . LTB.toLazyText . LTBI.decimal)
+integralParam ::
+  Integral n =>
+  ParameterType ->
+  Maybe Text ->
+  Text ->
+  ParameterDefinition n
+integralParam paramType format =
+  parsedParam
+    paramType
+    format
+    (Atto.signed Atto.decimal)
+    (LT.toStrict . LTB.toLazyText . LTBI.decimal)
 
 coerceParam :: Coercible a b => ParameterDefinition b -> ParameterDefinition a
 coerceParam =
-  convertParam (Right . coerce) coerce
+  convertParam Nothing (Right . coerce) coerce
 
 parsedParam ::
-  Text ->
+  ParameterType ->
+  Maybe Text ->
   Atto.Parser param ->
   (param -> Text) ->
+  Text ->
   ParameterDefinition param
-parsedParam name attoParser renderer =
+parsedParam paramType format attoParser renderer name =
   let
     parser =
       Bifunctor.first T.pack
@@ -148,17 +186,21 @@ parsedParam name attoParser renderer =
   in
     ParameterDefinition
       { parameterName = name
+      , parameterType = paramType
+      , parameterFormat = format
       , parameterParser = parser
       , parameterRenderer = renderer
       }
 
 convertParam ::
+  Maybe Text ->
   (a -> Either Text b) ->
   (b -> a) ->
   ParameterDefinition a ->
   ParameterDefinition b
-convertParam parse render paramDef =
+convertParam format parse render paramDef =
   paramDef
-    { parameterParser = parse <=< parameterParser paramDef
+    { parameterFormat = format <|> parameterFormat paramDef
+    , parameterParser = parse <=< parameterParser paramDef
     , parameterRenderer = parameterRenderer paramDef . render
     }

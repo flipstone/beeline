@@ -47,7 +47,7 @@ import Beeline.HTTP.Client.Operation
   , responseAcceptableContentTypes
   , responseSchemas
   )
-import Beeline.HTTP.Client.ParameterCollectionSchema (encodeHeaders, encodeQuery)
+import qualified Beeline.Params as BP
 import qualified Beeline.Routing as R
 
 data StatusResult unexpectedStatusBody err response
@@ -180,7 +180,7 @@ buildHTTPRequest operation request =
     requestHeaders =
       concat
         [ HTTP.requestHeaders incompleteRequest
-        , encodeHeaders headerSchema (headers request)
+        , BP.encodeHeaders headerSchema (headers request)
         , additionalHeaders request
         , foldMap (\ct -> [(HTTPTypes.hContentType, ct)]) (requestBodyContentType rqBodySchema)
         , acceptHeaders
@@ -198,7 +198,7 @@ buildHTTPRequest operation request =
       , HTTP.host = host (baseURI request)
       , HTTP.port = port (baseURI request)
       , HTTP.path = fullPath
-      , HTTP.queryString = encodeQuery querySchema (query request)
+      , HTTP.queryString = BP.encodeQuery querySchema (query request)
       , HTTP.requestBody = requestBody
       , HTTP.requestHeaders = requestHeaders
       }

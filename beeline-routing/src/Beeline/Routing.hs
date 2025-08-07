@@ -10,7 +10,11 @@ module Beeline.Routing
   ( module Export
   ) where
 
-import Beeline.Routing.ParameterDefinition as Export
+-- We re-export 'ParameterDefinition' from 'beeline-params' as a
+-- convenience for users using only 'beeline-routing', and for
+-- (some) backwards compatability earlier versions of this package
+-- that contained the definition itself.
+import Beeline.Params.ParameterDefinition as Export
 import Beeline.Routing.RouteDocumenter as Export
 import Beeline.Routing.RouteGenerator as Export
 import Beeline.Routing.RouteRecognizer as Export

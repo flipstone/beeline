@@ -18,7 +18,7 @@ import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Network.HTTP.Types as HTTP
 
-import Beeline.Routing.ParameterDefinition (ParameterDefinition (parameterName))
+import Beeline.Params (ParameterDefinition (parameterName))
 import qualified Beeline.Routing.Router as Router
 
 type PieceList = DList.DList Text

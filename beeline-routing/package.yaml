@@ -1,5 +1,5 @@
 name: beeline-routing
-version: 0.2.4.1
+version: 0.3.0.0
 license: MIT
 author: "Flipstone Technology Partners"
 maintainer: "development@flipstone.com"
@@ -61,23 +61,20 @@ library:
   source-dirs: src
   exposed-modules:
     - Beeline.Routing
-    - Beeline.Routing.ParameterDefinition
     - Beeline.Routing.RouteDocumenter
     - Beeline.Routing.RouteGenerator
     - Beeline.Routing.Router
     - Beeline.Routing.RouteRecognizer
   dependencies:
-    - attoparsec >= 0.13 && < 0.15
     - base >= 4.7 && < 5
-    - containers >= 0.6 && < 0.9
+    - beeline-params >= 0.1 && < 0.2
     - dlist >= 1.0 && < 1.1
     - http-types >= 0.12 && < 0.13
-    - scientific >= 0.3 && < 0.4
     - shrubbery >= 0.1 && < 0.3
     - text >= 1.2 && < 2.2
 
 tests:
-  spec:
+  beeline-routing-test:
     source-dirs: test
     main: Main.hs
     dependencies:
@@ -85,7 +82,6 @@ tests:
       - beeline-routing
       - hedgehog
       - http-types
-      - scientific >= 0.3 && < 0.4
       - shrubbery >= 0.1 && < 0.3
       - text
     when:

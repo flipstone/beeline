@@ -9,7 +9,7 @@ import qualified Hedgehog as HH
 import qualified Hedgehog.Gen as Gen
 import qualified Hedgehog.Range as Range
 
-import qualified Beeline.Routing.ParameterDefinition as P
+import qualified Beeline.Params as P
 
 tests :: IO Bool
 tests =

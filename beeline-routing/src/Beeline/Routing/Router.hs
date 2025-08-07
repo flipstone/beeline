@@ -33,7 +33,7 @@ import qualified Network.HTTP.Types as HTTP
 import Shrubbery (Union)
 import Shrubbery.TypeList (KnownLength)
 
-import Beeline.Routing.ParameterDefinition (ParameterDefinition)
+import Beeline.Params (ParameterDefinition)
 
 data Param route a = Param
   { paramDefinition :: ParameterDefinition a

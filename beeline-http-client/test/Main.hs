@@ -13,7 +13,6 @@ import qualified Data.ByteString.Char8 as BS8
 import qualified Data.ByteString.Lazy as LBS
 import qualified Data.IORef as IORef
 import qualified Data.List as List
-import Data.Maybe (catMaybes, isJust)
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as Enc
 import Hedgehog ((===))
@@ -27,8 +26,9 @@ import qualified Network.Wai as Wai
 import qualified Network.Wai.Handler.Warp as Warp
 import qualified System.Random as Rand
 
-import Beeline.HTTP.Client ((?+))
 import qualified Beeline.HTTP.Client as BHC
+import Beeline.Params ((?+))
+import qualified Beeline.Params as BP
 import Beeline.Routing ((/+), (/-))
 import qualified Beeline.Routing as R
 
@@ -49,12 +49,6 @@ tests =
   , ("prop_httpDecodingFailure", prop_httpDecodingFailure)
   , ("prop_httpGetQueryParams", prop_httpGetQueryParams)
   , ("prop_httpPostQueryParams", prop_httpPostQueryParams)
-  , ("prop_queryParamsRequired", prop_queryParamsRequired)
-  , ("prop_queryParamsOptional", prop_queryParamsOptional)
-  , ("prop_queryParamsExplodedArray", prop_queryParamsExplodedArray)
-  , ("prop_headersRequired", prop_headersRequired)
-  , ("prop_headersOptional", prop_headersOptional)
-  , ("prop_headersExplodedArray", prop_headersExplodedArray)
   , ("prop_basePath", prop_basePath)
   , ("prop_headers", prop_headers)
   , ("prop_additionalHeaders", prop_additionalHeaders)
@@ -410,11 +404,11 @@ data TestQueryParams = TestQueryParams
   }
   deriving (Show, Eq)
 
-testQueryParamSchema :: BHC.ParameterCollectionSchema q => q TestQueryParams TestQueryParams
+testQueryParamSchema :: BP.ParameterSchema schema => schema TestQueryParams TestQueryParams
 testQueryParamSchema =
-  BHC.makeParams TestQueryParams
-    ?+ BHC.required queryParam1 (R.textParam "param1")
-    ?+ BHC.optional queryParam2 (R.intParam "param2")
+  BP.makeParams TestQueryParams
+    ?+ BP.required queryParam1 (BP.textParam "param1")
+    ?+ BP.optional queryParam2 (BP.intParam "param2")
 
 getQueryParams ::
   BHC.Operation
@@ -443,7 +437,7 @@ prop_httpGetQueryParams =
         handleRequest request = do
           assertLater $ do
             Right expectedParams
-              === BHC.decodeQuery
+              === BP.decodeQuery
                 testQueryParamSchema
                 (Wai.rawQueryString request)
 
@@ -492,7 +486,7 @@ prop_httpPostQueryParams =
           body <- fmap LBS.toStrict (Wai.consumeRequestBodyStrict request)
           assertLater $ do
             lookup "Content-Type" (Wai.requestHeaders request) === Just "application/x-www-form-urlencoded"
-            Right expectedParams === BHC.decodeQuery testQueryParamSchema body
+            Right expectedParams === BP.decodeQuery testQueryParamSchema body
 
           pure . responseText HTTPTypes.ok200 $ ""
 
@@ -509,182 +503,6 @@ prop_httpPostQueryParams =
 
       response <- HH.evalIO (withTestServer handleRequest issueRequest)
       response === BHC.NoResponseBody
-
-requiredFooBarQuery ::
-  BHC.ParameterCollectionSchema r =>
-  r (T.Text, Int) (T.Text, Int)
-requiredFooBarQuery =
-  BHC.makeParams (,)
-    ?+ BHC.required fst (R.textParam "foo")
-    ?+ BHC.required snd (R.intParam "bar")
-
-prop_queryParamsRequired :: HH.Property
-prop_queryParamsRequired =
-  HH.property $ do
-    foo <- HH.forAll genText
-    bar <- HH.forAll genInt
-
-    let
-      expectedQuery =
-        HTTPTypes.renderQuery
-          True
-          [ ("foo", Just (Enc.encodeUtf8 foo))
-          , ("bar", Just (BS8.pack (show bar)))
-          ]
-
-      actualQuery =
-        BHC.encodeQuery requiredFooBarQuery (foo, bar)
-
-      roundTrippedValue =
-        BHC.decodeQuery requiredFooBarQuery actualQuery
-
-    expectedQuery === actualQuery
-    Right (foo, bar) === roundTrippedValue
-
-optionalFooBarQuery ::
-  BHC.ParameterCollectionSchema r =>
-  r (Maybe T.Text, Maybe Int) (Maybe T.Text, Maybe Int)
-optionalFooBarQuery =
-  BHC.makeParams (,)
-    ?+ BHC.optional fst (R.textParam "foo")
-    ?+ BHC.optional snd (R.intParam "bar")
-
-prop_queryParamsOptional :: HH.Property
-prop_queryParamsOptional =
-  HH.property $ do
-    foo <- HH.forAll (Gen.maybe genText)
-    bar <- HH.forAll (Gen.maybe genInt)
-
-    let
-      expectedQuery =
-        HTTPTypes.renderQuery True
-          . filter (isJust . snd)
-          $ [ ("foo", fmap Enc.encodeUtf8 foo)
-            , ("bar", fmap (BS8.pack . show) bar)
-            ]
-
-      actualQuery =
-        BHC.encodeQuery optionalFooBarQuery (foo, bar)
-
-      roundTrippedValue =
-        BHC.decodeQuery optionalFooBarQuery actualQuery
-
-    expectedQuery === actualQuery
-    Right (foo, bar) === roundTrippedValue
-
-explodedArrayFooBarQuery ::
-  BHC.ParameterCollectionSchema r =>
-  r ([T.Text], [Int]) ([T.Text], [Int])
-explodedArrayFooBarQuery =
-  BHC.makeParams (,)
-    ?+ BHC.explodedArray fst (R.textParam "foo")
-    ?+ BHC.explodedArray snd (R.intParam "bar")
-
-prop_queryParamsExplodedArray :: HH.Property
-prop_queryParamsExplodedArray =
-  HH.property $ do
-    foos <- HH.forAll (Gen.list (Range.linear 0 3) genText)
-    bars <- HH.forAll (Gen.list (Range.linear 0 3) genInt)
-
-    let
-      mkFooParam :: T.Text -> (BS8.ByteString, Maybe BS8.ByteString)
-      mkFooParam foo =
-        ("foo", Just (Enc.encodeUtf8 foo))
-
-      mkBarParam :: Int -> (BS8.ByteString, Maybe BS8.ByteString)
-      mkBarParam bar =
-        ("bar", Just (BS8.pack (show bar)))
-
-      expectedQuery =
-        HTTPTypes.renderQuery True $
-          fmap mkFooParam foos
-            <> fmap mkBarParam bars
-
-      actualQuery =
-        BHC.encodeQuery explodedArrayFooBarQuery (foos, bars)
-
-      roundTrippedValue =
-        BHC.decodeQuery explodedArrayFooBarQuery actualQuery
-
-    expectedQuery === actualQuery
-    Right (foos, bars) === roundTrippedValue
-
-prop_headersRequired :: HH.Property
-prop_headersRequired =
-  HH.property $ do
-    foo <- HH.forAll genText
-    bar <- HH.forAll genInt
-
-    let
-      expectedHeaders =
-        [ ("foo", Enc.encodeUtf8 foo)
-        , ("bar", BS8.pack (show bar))
-        ]
-
-      actualHeaders =
-        BHC.encodeHeaders requiredFooBarQuery (foo, bar)
-
-      roundTrippedValue =
-        BHC.decodeHeaders requiredFooBarQuery actualHeaders
-
-    expectedHeaders === actualHeaders
-    Right (foo, bar) === roundTrippedValue
-
-prop_headersOptional :: HH.Property
-prop_headersOptional =
-  HH.property $ do
-    foo <- HH.forAll (Gen.maybe genText)
-    bar <- HH.forAll (Gen.maybe genInt)
-
-    let
-      mbTuple :: a -> Maybe b -> Maybe (a, b)
-      mbTuple k mbV =
-        case mbV of
-          Nothing -> Nothing
-          Just v -> Just (k, v)
-
-      expectedHeaders =
-        catMaybes
-          [ mbTuple "foo" (fmap Enc.encodeUtf8 foo)
-          , mbTuple "bar" (fmap (BS8.pack . show) bar)
-          ]
-
-      actualHeaders =
-        BHC.encodeHeaders optionalFooBarQuery (foo, bar)
-
-      roundTrippedValue =
-        BHC.decodeHeaders optionalFooBarQuery actualHeaders
-
-    expectedHeaders === actualHeaders
-    Right (foo, bar) === roundTrippedValue
-
-prop_headersExplodedArray :: HH.Property
-prop_headersExplodedArray =
-  HH.property $ do
-    foos <- HH.forAll (Gen.list (Range.linear 0 3) genText)
-    bars <- HH.forAll (Gen.list (Range.linear 0 3) genInt)
-
-    let
-      mkFooParam :: T.Text -> (HTTPTypes.HeaderName, BS8.ByteString)
-      mkFooParam foo =
-        ("foo", Enc.encodeUtf8 foo)
-
-      mkBarParam :: Int -> (HTTPTypes.HeaderName, BS8.ByteString)
-      mkBarParam bar =
-        ("bar", BS8.pack (show bar))
-
-      expectedHeaders =
-        fmap mkFooParam foos
-          <> fmap mkBarParam bars
-
-      actualHeaders =
-        BHC.encodeHeaders explodedArrayFooBarQuery (foos, bars)
-
-      roundTrippedValue =
-        BHC.decodeHeaders explodedArrayFooBarQuery actualHeaders
-
-    expectedHeaders === actualHeaders
-    Right (foos, bars) === roundTrippedValue
 
 prop_basePath :: HH.Property
 prop_basePath =
@@ -713,6 +531,14 @@ prop_basePath =
           void $ BHC.httpRequestThrow getFooBar request manager
 
       HH.evalIO (withTestServer handleRequest issueRequest)
+
+requiredFooBarQuery ::
+  BP.ParameterSchema schema =>
+  schema (T.Text, Int) (T.Text, Int)
+requiredFooBarQuery =
+  BP.makeParams (,)
+    ?+ BP.required fst (BP.textParam "foo")
+    ?+ BP.required snd (BP.intParam "bar")
 
 getWithHeaders ::
   BHC.Operation
@@ -867,7 +693,3 @@ responseText status =
 genText :: HH.Gen T.Text
 genText =
   Gen.text (Range.linear 0 32) Gen.unicodeAll
-
-genInt :: HH.Gen Int
-genInt =
-  Gen.integral (Range.linearFrom 0 minBound maxBound)

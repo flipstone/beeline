@@ -20,7 +20,7 @@ import qualified Network.HTTP.Types as HTTP
 import Shrubbery (Union)
 import Shrubbery.Parser (Parser, parse, parseEnd, parseOption)
 
-import Beeline.Routing.ParameterDefinition (ParameterDefinition (parameterParser))
+import Beeline.Params (ParameterDefinition (parameterParser))
 import qualified Beeline.Routing.Router as Router
 
 newtype RouteRecognizer a = RouteRecognizer

@@ -66,18 +66,13 @@ import Beeline.HTTP.Client.ContentType
   , toRequestContentType
   , toResponseContentType
   )
-import Beeline.HTTP.Client.ParameterCollectionSchema
-  ( HeaderEncoder
-  , ParameterCollectionSchema (makeParams)
-  , QueryEncoder
-  )
-
+import qualified Beeline.Params as BP
 import qualified Beeline.Routing as R
 
 data Operation err route query headers requestBody response = Operation
   { requestRoute :: R.RouteGenerator route
-  , requestQuerySchema :: QueryEncoder query query
-  , requestHeaderSchema :: HeaderEncoder headers headers
+  , requestQuerySchema :: BP.QueryEncoder query query
+  , requestHeaderSchema :: BP.HeaderEncoder headers headers
   , requestBodySchema :: RequestBodySchema requestBody
   , responseSchemas :: [(StatusRange, ResponseBodySchema err response)]
   }
@@ -167,16 +162,16 @@ noPathParams =
 data NoQueryParams = NoQueryParams
   deriving (Show, Eq)
 
-noQueryParams :: ParameterCollectionSchema q => q NoQueryParams NoQueryParams
+noQueryParams :: BP.QuerySchema schema => schema NoQueryParams NoQueryParams
 noQueryParams =
-  makeParams NoQueryParams
+  BP.makeParams NoQueryParams
 
 data NoHeaderParams = NoHeaderParams
   deriving (Show, Eq)
 
-noHeaderParams :: ParameterCollectionSchema q => q NoHeaderParams NoHeaderParams
+noHeaderParams :: BP.HeaderSchema schema => schema NoHeaderParams NoHeaderParams
 noHeaderParams =
-  makeParams NoHeaderParams
+  BP.makeParams NoHeaderParams
 
 defaultOperation :: Operation err NoPathParams NoQueryParams NoHeaderParams NoRequestBody NoResponseBody
 defaultOperation =

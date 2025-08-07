@@ -3,11 +3,14 @@ allow-different-user: true
 system-ghc: true
 install-ghc: false
 packages:
+  - beeline-params
   - beeline-routing
   - beeline-http-client
   - beeline-examples
 
 flags:
+  beeline-params:
+    ci: true
   beeline-routing:
     ci: true
   beeline-http-client:
