@@ -4,7 +4,9 @@ module Test.CookieSchema
   ( tests
   ) where
 
+import qualified Data.ByteString.Builder as BSB
 import qualified Data.ByteString.Char8 as BS8
+import qualified Data.ByteString.Lazy as LBS
 import Data.Maybe (catMaybes)
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as Enc
@@ -22,12 +24,12 @@ tests =
   HH.checkParallel $
     HH.Group
       "CookieSchema"
-      [ ("prop_headersRequired", prop_headersRequired)
-      , ("prop_headersOptional", prop_headersOptional)
+      [ ("prop_cookiesRequired", prop_cookiesRequired)
+      , ("prop_cookiesOptional", prop_cookiesOptional)
       ]
 
-prop_headersRequired :: HH.Property
-prop_headersRequired =
+prop_cookiesRequired :: HH.Property
+prop_cookiesRequired =
   HH.property $ do
     foo <- HH.forAll genText
     bar <- HH.forAll genInt
@@ -42,7 +44,7 @@ prop_headersRequired =
           ?+ BP.required snd (BP.intParam "bar")
 
       expectedCookies =
-        Cookie.renderCookiesBS
+        LBS.toStrict . BSB.toLazyByteString . Cookie.renderCookies $
           [ ("foo", Enc.encodeUtf8 foo)
           , ("bar", BS8.pack (show bar))
           ]
@@ -56,8 +58,8 @@ prop_headersRequired =
     expectedCookies === actualCookies
     Right (foo, bar) === roundTrippedValue
 
-prop_headersOptional :: HH.Property
-prop_headersOptional =
+prop_cookiesOptional :: HH.Property
+prop_cookiesOptional =
   HH.property $ do
     foo <- HH.forAll (Gen.maybe genText)
     bar <- HH.forAll (Gen.maybe genInt)
@@ -78,7 +80,7 @@ prop_headersOptional =
           Just v -> Just (k, v)
 
       expectedCookies =
-        Cookie.renderCookiesBS $
+        LBS.toStrict . BSB.toLazyByteString . Cookie.renderCookies $
           catMaybes
             [ mbTuple "foo" (fmap Enc.encodeUtf8 foo)
             , mbTuple "bar" (fmap (BS8.pack . show) bar)

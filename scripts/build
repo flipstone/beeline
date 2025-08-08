@@ -5,4 +5,4 @@ set -o errexit
 . scripts/lib/run-in-container.sh
 
 ./scripts/format-repo
-./scripts/test
+./scripts/test-all.sh

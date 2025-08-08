@@ -1,6 +1,7 @@
 resolver: nightly-2025-01-01
 allow-different-user: true
 packages:
+  - beeline-params
   - beeline-routing
   - beeline-http-client
   - beeline-examples

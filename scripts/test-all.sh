@@ -9,6 +9,10 @@
 # then as the regular edit/compile/test loop to get feedback during
 # development.
 
+set -o errexit
+
+. scripts/lib/run-in-container.sh
+
 rm -rf test-all-logs
 mkdir test-all-logs
 

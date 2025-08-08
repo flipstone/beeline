@@ -1,6 +1,7 @@
 resolver: lts-18.28
 allow-different-user: true
 packages:
+  - beeline-params
   - beeline-routing
   - beeline-http-client
   - beeline-examples

@@ -17,6 +17,8 @@ module Beeline.Params.CookieSchema
 
 import Control.Monad ((<=<))
 import qualified Data.ByteString as BS
+import qualified Data.ByteString.Builder as BSB
+import qualified Data.ByteString.Lazy as LBS
 import qualified Data.DList as DList
 import qualified Data.Map.Strict as Map
 import qualified Data.Text as T
@@ -41,7 +43,7 @@ type CookieBuilder =
 -}
 encodeCookies :: CookieEncoder a b -> a -> BS.ByteString
 encodeCookies (CookieEncoder f) =
-  Cookie.renderCookiesBS . DList.toList . f
+  LBS.toStrict . BSB.toLazyByteString . Cookie.renderCookies . DList.toList . f
 
 instance PS.ParameterSchema CookieEncoder where
   newtype Parameter CookieEncoder record _a

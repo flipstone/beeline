@@ -46,7 +46,7 @@ library
     , bytestring >=0.10 && <0.13
     , case-insensitive ==1.2.*
     , containers >=0.6 && <0.9
-    , cookie ==0.4.*
+    , cookie >=0.4 && <0.6
     , dlist ==1.0.*
     , http-types ==0.12.*
     , scientific ==0.3.*
