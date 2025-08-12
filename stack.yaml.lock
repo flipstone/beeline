@@ -7,14 +7,14 @@ packages:
 - completed:
     name: shrubbery
     pantry-tree:
-      sha256: ac1c659511a82f56fd04f9fbbf5e1e154bc99e821aeba6123777ddec5207dc05
+      sha256: d16c6b171d9b360098760d2c2269ded8eaae823ed9aa5c7a36598673e83fb9e3
       size: 2834
-    sha256: 10cfe7d955e86cad2a93ed207d7b4fa2b205aa242785dee0c8df913283adf130
-    size: 30352
-    url: https://github.com/flipstone/shrubbery/archive/6dd2236be034f691bd6663d03961750af603c616.tar.gz
-    version: 0.2.3.0
+    sha256: 8bb3b52a8f9cb3f6edc5ee0c4584c81187b05966d59d718a247a6707479e2e33
+    size: 30344
+    url: https://github.com/flipstone/shrubbery/archive/a064ede07e01b753a6eb310fc24d9fd8da1ad826.tar.gz
+    version: 0.2.3.1
   original:
-    url: https://github.com/flipstone/shrubbery/archive/6dd2236be034f691bd6663d03961750af603c616.tar.gz
+    url: https://github.com/flipstone/shrubbery/archive/a064ede07e01b753a6eb310fc24d9fd8da1ad826.tar.gz
 - completed:
     commit: f3c2b1e461a37e7ff88d795379edd7386bfa8557
     git: https://github.com/flipstone/henforcer.git
