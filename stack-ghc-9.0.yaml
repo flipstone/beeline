@@ -1,18 +1,6 @@
-resolver: lts-19.33
-allow-different-user: true
-packages:
-  - beeline-params
-  - beeline-routing
-  - beeline-http-client
-  - beeline-examples
+<<: !include stack-base.yaml
 
-flags:
-  beeline-routing:
-    ci: true
-  beeline-http-client:
-    ci: true
-  beeline-examples:
-    ci: true
+resolver: lts-19.33
 
 extra-deps:
   - github: flipstone/shrubbery
