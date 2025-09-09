@@ -1,6 +1,6 @@
 <<: !include stack-base.yaml
 
-resolver: nightly-2025-01-01
+resolver: lts-24.8
 
 extra-deps:
   - github: flipstone/shrubbery

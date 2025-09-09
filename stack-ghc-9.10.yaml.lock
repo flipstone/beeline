@@ -35,7 +35,7 @@ packages:
     hackage: pollock-0.1.0.3
 snapshots:
 - completed:
-    sha256: e51a16b6e1d33a34f2fee69062b5d822fbb5a0ca1ecc4673b1fb82d804fdc965
-    size: 620698
-    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/nightly/2025/1/1.yaml
-  original: nightly-2025-01-01
+    sha256: d347039f81388e16ea93ddaf9ff1850abfba8f8680ff75fbdd177692542ceb26
+    size: 726286
+    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/24/8.yaml
+  original: lts-24.8
