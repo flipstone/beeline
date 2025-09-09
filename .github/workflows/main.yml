@@ -40,7 +40,7 @@ jobs:
         env:
           cache-version: v3
         with:
-          key: ${{ env.cache-version }}-${{ matrix.stack-yaml }}-${{ hashFiles(matrix.stack-yaml, 'stack-base.yaml', 'package.yaml') }}
+          key: ${{ env.cache-version }}-${{ matrix.stack-yaml }}-${{ hashFiles(matrix.stack-yaml, 'stack-base.yaml', '*/package.yaml') }}
           restore-keys: |
             ${{ env.cache-version }}-${{ matrix.stack-yaml }}-
           path: |
