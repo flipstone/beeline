@@ -49,8 +49,8 @@ subrouter =
         /> R.Subrouter FooBarBaz.fooBarBazRouter unLeftSubroute
     )
       /: ( R.make RightSubroute
-            /- rightSubroutePath
-            /> R.Subrouter FooBarBaz.fooBarBazRouter unRightSubroute
+             /- rightSubroutePath
+             /> R.Subrouter FooBarBaz.fooBarBazRouter unRightSubroute
          )
       /: R.emptyRoutes
 

@@ -5,7 +5,7 @@ cabal-version: 1.12
 -- see: https://github.com/sol/hpack
 
 name:           beeline-routing
-version:        0.3.0.1
+version:        0.3.0.2
 description:    Please see the README on GitHub at <https://github.com/flipstone/beeline#readme>
 homepage:       https://github.com/flipstone/beeline#readme
 bug-reports:    https://github.com/flipstone/beeline/issues
