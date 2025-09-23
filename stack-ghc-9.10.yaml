@@ -1,6 +1,6 @@
 <<: !include stack-base.yaml
 
-resolver: lts-24.8
+resolver: lts-24.12
 
 extra-deps:
   - github: flipstone/shrubbery
