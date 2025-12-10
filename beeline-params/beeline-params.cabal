@@ -11,6 +11,7 @@ homepage:       https://github.com/flipstone/beeline#readme
 bug-reports:    https://github.com/flipstone/beeline/issues
 author:         Flipstone Technology Partners
 maintainer:     development@flipstone.com
+copyright:      2025 Flipstone Technology Partners
 license:        MIT
 license-file:   LICENSE
 build-type:     Simple
