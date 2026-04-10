@@ -195,5 +195,5 @@ instance ContentTypeEncoder MultipartFormData where
   toRequestContentType (MultipartFormData boundary) _ =
     BS8.pack "multipart/form-data; boundary=" <> boundary
 
-  toRequestBody (MultipartFormData boundary) (MultipartEncoder toParts) a =
-    HTTP.RequestBodyIO (Multipart.renderParts boundary (toParts a))
+  toRequestBody (MultipartFormData boundary) (MultipartEncoder toParts) =
+    HTTP.RequestBodyIO . Multipart.renderParts boundary . toParts
