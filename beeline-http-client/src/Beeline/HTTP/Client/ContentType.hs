@@ -17,6 +17,8 @@ module Beeline.HTTP.Client.ContentType
   , OctetStreamEncoding (Bytes, LazyBytes)
   , FormURLEncoded (FormURLEncoded)
   , FormEncoder (FormEncoder)
+  , MultipartFormData (MultipartFormData, multipartFormDataBoundary)
+  , MultipartEncoder (MultipartEncoder)
   ) where
 
 import qualified Control.Exception as Exc
@@ -29,6 +31,7 @@ import qualified Data.Text.Encoding as Enc
 import qualified Data.Text.Lazy as LT
 import qualified Data.Text.Lazy.Encoding as LEnc
 import qualified Network.HTTP.Client as HTTP
+import qualified Network.HTTP.Client.MultipartFormData as Multipart
 
 import Beeline.Params (QueryEncoder, encodeQueryBare)
 
@@ -178,3 +181,19 @@ instance ContentTypeEncoder FormURLEncoded where
 formURLEncodedContentType :: BS.ByteString
 formURLEncodedContentType =
   BS8.pack "application/x-www-form-urlencoded"
+
+newtype MultipartFormData = MultipartFormData
+  { multipartFormDataBoundary :: BS.ByteString
+  }
+
+newtype MultipartEncoder a
+  = MultipartEncoder (a -> [Multipart.Part])
+
+instance ContentTypeEncoder MultipartFormData where
+  type EncodeSchema MultipartFormData = MultipartEncoder
+
+  toRequestContentType (MultipartFormData boundary) _ =
+    BS8.pack "multipart/form-data; boundary=" <> boundary
+
+  toRequestBody (MultipartFormData boundary) (MultipartEncoder toParts) a =
+    HTTP.RequestBodyIO (Multipart.renderParts boundary (toParts a))

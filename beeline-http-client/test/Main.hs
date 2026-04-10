@@ -21,6 +21,7 @@ import qualified Hedgehog.Gen as Gen
 import qualified Hedgehog.Main as HHM
 import qualified Hedgehog.Range as Range
 import qualified Network.HTTP.Client as HTTP
+import qualified Network.HTTP.Client.MultipartFormData as Multipart
 import qualified Network.HTTP.Types as HTTPTypes
 import qualified Network.Wai as Wai
 import qualified Network.Wai.Handler.Warp as Warp
@@ -53,6 +54,7 @@ tests =
   , ("prop_headers", prop_headers)
   , ("prop_additionalHeaders", prop_additionalHeaders)
   , ("prop_parseBaseURI", prop_parseBaseURI)
+  , ("prop_httpPostMultipart", prop_httpPostMultipart)
   ]
 
 newtype FooBarId
@@ -645,6 +647,62 @@ prop_parseBaseURI =
           }
 
     Right expected === BHC.parseBaseURI input
+
+postMultipart ::
+  BHC.Operation
+    BHC.ContentTypeDecodingError
+    BHC.NoPathParams
+    BHC.NoQueryParams
+    BHC.NoHeaderParams
+    (T.Text, BS.ByteString)
+    BHC.NoResponseBody
+postMultipart =
+  let
+    boundary = "test-boundary-1234"
+    encoder = BHC.MultipartEncoder $ \(name, content) ->
+      [Multipart.partBS name content]
+  in
+    BHC.defaultOperation
+      { BHC.requestRoute = R.post (R.make BHC.NoPathParams)
+      , BHC.requestBodySchema =
+          BHC.requestBody (BHC.MultipartFormData boundary) encoder
+      }
+
+prop_httpPostMultipart :: HH.Property
+prop_httpPostMultipart =
+  HH.withTests 1 . HH.property $ do
+    withAssertLater $ \assertLater -> do
+      let
+        expectedName = "fieldname"
+        expectedContent = "field value"
+
+        handleRequest request = do
+          body <- fmap LBS.toStrict (Wai.consumeRequestBodyStrict request)
+
+          assertLater $ do
+            Wai.requestMethod request === HTTPTypes.methodPost
+            lookup "Content-Type" (Wai.requestHeaders request)
+              === Just "multipart/form-data; boundary=test-boundary-1234"
+            let
+              bodyStr = BS8.unpack body
+            HH.assert (List.isInfixOf "fieldname" bodyStr)
+            HH.assert (List.isInfixOf "field value" bodyStr)
+
+          pure $ Wai.responseLBS HTTPTypes.ok200 [] ""
+
+        issueRequest port = do
+          let
+            request =
+              BHC.defaultRequest
+                { BHC.baseURI = BHC.defaultBaseURI {BHC.port = port}
+                , BHC.body = (expectedName, expectedContent)
+                }
+
+          manager <- HTTP.newManager HTTP.defaultManagerSettings
+          BHC.httpRequestThrow postMultipart request manager
+
+      response <- HH.evalIO (withTestServer handleRequest issueRequest)
+      response === BHC.NoResponseBody
 
 withAssertLater ::
   ((HH.PropertyT IO () -> IO ()) -> HH.PropertyT IO a) ->
