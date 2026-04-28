@@ -10,3 +10,7 @@ extra-deps:
   - pollock-0.1.0.3
   - tomland-1.3.3.3
   - validation-selective-0.2.0.0
+  - github: flipstone/bounded-text
+    commit: 3ef94eeda5402857423284d0c4e021a8c8032498
+  - template-haskell-lift-0.1.0.0
+  - template-haskell-quasiquoter-0.1.0.0

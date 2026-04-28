@@ -40,15 +40,11 @@ when:
         - -Wmissing-export-lists
         - -Wpartial-fields
         - -Wunused-packages
+        - -Winvalid-haddock
+        - -Wimplicit-lift
+        - -Woperator-whitespace
+        - -Wredundant-bang-patterns
     when:
-        - condition: impl (ghc >= 9.0)
-          ghc-options:
-            - -Winvalid-haddock
-        - condition: impl (ghc >= 9.2)
-          ghc-options:
-            - -Wimplicit-lift
-            - -Woperator-whitespace
-            - -Wredundant-bang-patterns
         - condition: impl (ghc >= 9.4)
           ghc-options:
             - -Wredundant-strictness-flags

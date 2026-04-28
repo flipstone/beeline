@@ -16,7 +16,7 @@ license-file: LICENSE
 # common to point users to the README.md file.
 description:         Please see the README on GitHub at <https://github.com/githubuser/json-fleece-http#readme>
 tested-with:
-    GHC == 8.10.7, GHC == 9.0.2, GHC == 9.2.8, GHC == 9.4.8, GHC == 9.6.6, GHC == 9.8.4, GHC == 9.10.1
+    GHC == 9.2.8, GHC == 9.4.8, GHC == 9.6.6, GHC == 9.8.4, GHC == 9.10.1
 flags:
   ci:
     description: More strict ghc options used for development and ci, not intended for end-use.
@@ -36,15 +36,11 @@ when:
         - -Wmissing-export-lists
         - -Wpartial-fields
         - -Wunused-packages
+        - -Winvalid-haddock
+        - -Wimplicit-lift
+        - -Woperator-whitespace
+        - -Wredundant-bang-patterns
     when:
-        - condition: impl (ghc >= 9.0)
-          ghc-options:
-            - -Winvalid-haddock
-        - condition: impl (ghc >= 9.2)
-          ghc-options:
-            - -Wimplicit-lift
-            - -Woperator-whitespace
-            - -Wredundant-bang-patterns
         - condition: impl (ghc >= 9.4)
           ghc-options:
             - -Wredundant-strictness-flags
@@ -71,7 +67,7 @@ library:
     - Beeline.HTTP.Client.Operation
   dependencies:
     - base >= 4.7 && < 5
-    - beeline-params >= 0.1 && < 0.2
+    - beeline-params >= 0.1 && < 0.3
     - beeline-routing >= 0.3 && < 0.4
     - bytestring >= 0.10 && < 0.13
     - containers >= 0.6 && < 0.9
@@ -96,7 +92,7 @@ tests:
     dependencies:
       - base >= 4.7 && < 5
       - beeline-http-client
-      - beeline-params >= 0.1 && < 0.2
+      - beeline-params >= 0.1 && < 0.3
       - beeline-routing >= 0.3 && < 0.4
       - bytestring >= 0.10 && < 0.13
       - hedgehog

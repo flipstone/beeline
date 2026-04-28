@@ -1,7 +1,0 @@
-<<: !include stack-base.yaml
-
-resolver: lts-19.33
-
-extra-deps:
-  - github: flipstone/shrubbery
-    commit: 6dd2236be034f691bd6663d03961750af603c616
