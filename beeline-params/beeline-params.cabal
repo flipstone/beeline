@@ -5,7 +5,7 @@ cabal-version: 1.12
 -- see: https://github.com/sol/hpack
 
 name:           beeline-params
-version:        0.1.0.1
+version:        0.2.0.0
 description:    Please see the README on GitHub at <https://github.com/flipstone/beeline#readme>
 homepage:       https://github.com/flipstone/beeline#readme
 bug-reports:    https://github.com/flipstone/beeline/issues
@@ -16,7 +16,7 @@ license:        MIT
 license-file:   LICENSE
 build-type:     Simple
 tested-with:
-    GHC == 8.10.7, GHC == 9.0.2, GHC == 9.2.8, GHC == 9.4.8, GHC == 9.6.6, GHC == 9.8.4, GHC == 9.10.1
+    GHC == 9.2.8, GHC == 9.4.8, GHC == 9.6.6, GHC == 9.8.4, GHC == 9.10.1
 
 source-repository head
   type: git
@@ -38,27 +38,24 @@ library
       Beeline.Params.QuerySchema
   other-modules:
       Beeline.Params.Internal.ParamLookup
-      Paths_beeline_params
   hs-source-dirs:
       src
   build-depends:
       attoparsec >=0.13 && <0.15
     , base >=4.7 && <5
+    , bounded-text >=0.1.1 && <0.2
     , bytestring >=0.10 && <0.13
     , case-insensitive ==1.2.*
     , containers >=0.6 && <0.9
     , cookie >=0.4 && <0.6
     , dlist ==1.0.*
     , http-types ==0.12.*
+    , non-empty-text ==0.2.*
     , scientific ==0.3.*
     , text >=1.2 && <2.2
   default-language: Haskell2010
   if flag(ci)
-    ghc-options: -O2 -Wall -Werror -Wcompat -fwrite-ide-info -hiedir=.hie -Widentities -Wmissed-specialisations -Wmissing-local-signatures -Wmissing-export-lists -Wpartial-fields -Wunused-packages
-    if impl (ghc >= 9.0)
-      ghc-options: -Winvalid-haddock
-    if impl (ghc >= 9.2)
-      ghc-options: -Wimplicit-lift -Woperator-whitespace -Wredundant-bang-patterns
+    ghc-options: -O2 -Wall -Werror -Wcompat -fwrite-ide-info -hiedir=.hie -Widentities -Wmissed-specialisations -Wmissing-local-signatures -Wmissing-export-lists -Wpartial-fields -Wunused-packages -Winvalid-haddock -Wimplicit-lift -Woperator-whitespace -Wredundant-bang-patterns
     if impl (ghc >= 9.4)
       ghc-options: -Wredundant-strictness-flags
     if impl (ghc >= 9.6)
@@ -74,8 +71,10 @@ test-suite beeline-params-test
   type: exitcode-stdio-1.0
   main-is: Main.hs
   other-modules:
+      Test.BoundedTextParam
       Test.CookieSchema
       Test.HeaderSchema
+      Test.NonEmptyTextParam
       Test.ParameterDefinition
       Test.QuerySchema
       Paths_beeline_params
@@ -84,19 +83,17 @@ test-suite beeline-params-test
   build-depends:
       base
     , beeline-params
+    , bounded-text
     , bytestring
     , cookie
     , hedgehog
     , http-types
+    , non-empty-text
     , scientific ==0.3.*
     , text
   default-language: Haskell2010
   if flag(ci)
-    ghc-options: -O2 -Wall -Werror -Wcompat -fwrite-ide-info -hiedir=.hie -Widentities -Wmissed-specialisations -Wmissing-local-signatures -Wmissing-export-lists -Wpartial-fields -Wunused-packages
-    if impl (ghc >= 9.0)
-      ghc-options: -Winvalid-haddock
-    if impl (ghc >= 9.2)
-      ghc-options: -Wimplicit-lift -Woperator-whitespace -Wredundant-bang-patterns
+    ghc-options: -O2 -Wall -Werror -Wcompat -fwrite-ide-info -hiedir=.hie -Widentities -Wmissed-specialisations -Wmissing-local-signatures -Wmissing-export-lists -Wpartial-fields -Wunused-packages -Winvalid-haddock -Wimplicit-lift -Woperator-whitespace -Wredundant-bang-patterns
     if impl (ghc >= 9.4)
       ghc-options: -Wredundant-strictness-flags
     if impl (ghc >= 9.6)

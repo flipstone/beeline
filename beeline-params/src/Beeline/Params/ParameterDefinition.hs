@@ -1,3 +1,8 @@
+{-# LANGUAGE AllowAmbiguousTypes #-}
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeApplications #-}
+
 {- |
 Copyright : Flipstone Technology Partners 2021-2025
 License   : MIT
@@ -8,6 +13,8 @@ module Beeline.Params.ParameterDefinition
   ( ParameterDefinition (..)
   , ParameterType (..)
   , textParam
+  , boundedTextParam
+  , nonEmptyTextParam
   , integralParam
   , integerParam
   , intParam
@@ -30,10 +37,12 @@ import Control.Monad ((<=<))
 import qualified Data.Attoparsec.Text as Atto
 import qualified Data.Bifunctor as Bifunctor
 import Data.Bool (bool)
+import qualified Data.BoundedText as BT
 import Data.Coerce (Coercible, coerce)
 import Data.Functor (($>))
 import Data.Int (Int16, Int32, Int64, Int8)
 import qualified Data.Map.Strict as Map
+import qualified Data.NonEmptyText as NET
 import Data.Scientific (Scientific, fromFloatDigits, toRealFloat)
 import Data.Text (Text)
 import qualified Data.Text as T
@@ -41,11 +50,14 @@ import qualified Data.Text.Lazy as LT
 import qualified Data.Text.Lazy.Builder as LTB
 import qualified Data.Text.Lazy.Builder.Int as LTBI
 import qualified Data.Text.Lazy.Builder.RealFloat as LTBF
+import GHC.TypeLits (KnownNat)
 
 data ParameterDefinition param = ParameterDefinition
   { parameterName :: Text
   , parameterType :: ParameterType
   , parameterFormat :: Maybe Text
+  , parameterMinLength :: Maybe Word
+  , parameterMaxLength :: Maybe Word
   , parameterParser :: Text -> Either Text param
   , parameterRenderer :: param -> Text
   }
@@ -69,6 +81,8 @@ textParam name =
     { parameterName = name
     , parameterType = ParameterString
     , parameterFormat = Nothing
+    , parameterMinLength = Nothing
+    , parameterMaxLength = Nothing
     , parameterParser = Right
     , parameterRenderer = id
     }
@@ -188,6 +202,8 @@ parsedParam paramType format attoParser renderer name =
       { parameterName = name
       , parameterType = paramType
       , parameterFormat = format
+      , parameterMinLength = Nothing
+      , parameterMaxLength = Nothing
       , parameterParser = parser
       , parameterRenderer = renderer
       }
@@ -204,3 +220,57 @@ convertParam format parse render paramDef =
     , parameterParser = parse <=< parameterParser paramDef
     , parameterRenderer = parameterRenderer paramDef . render
     }
+
+-- | @since 0.2.0.0
+boundedTextParam ::
+  forall minLen maxLen.
+  (KnownNat minLen, KnownNat maxLen) =>
+  Text ->
+  ParameterDefinition (BT.BoundedText minLen maxLen)
+boundedTextParam name =
+  let
+    minVal = BT.boundedTextMinLength @(BT.BoundedText minLen maxLen)
+    maxVal = BT.boundedTextMaxLength @(BT.BoundedText minLen maxLen)
+  in
+    ParameterDefinition
+      { parameterName = name
+      , parameterType = ParameterString
+      , parameterFormat = Nothing
+      , parameterMinLength = Just (fromIntegral minVal)
+      , parameterMaxLength = Just (fromIntegral maxVal)
+      , parameterParser = parseBoundedText
+      , parameterRenderer = BT.boundedTextToText
+      }
+
+parseBoundedText ::
+  forall minLen maxLen.
+  (KnownNat minLen, KnownNat maxLen) =>
+  Text ->
+  Either Text (BT.BoundedText minLen maxLen)
+parseBoundedText text =
+  case BT.boundedTextFromText text of
+    Right bt -> Right bt
+    Left err -> Left (T.pack (BT.describeBoundedTextError err))
+
+-- | @since 0.2.0.0
+nonEmptyTextParam ::
+  Text ->
+  ParameterDefinition NET.NonEmptyText
+nonEmptyTextParam name =
+  ParameterDefinition
+    { parameterName = name
+    , parameterType = ParameterString
+    , parameterFormat = Nothing
+    , parameterMinLength = Just 1
+    , parameterMaxLength = Nothing
+    , parameterParser = parseNonEmptyText
+    , parameterRenderer = NET.toText
+    }
+
+parseNonEmptyText ::
+  Text ->
+  Either Text NET.NonEmptyText
+parseNonEmptyText text =
+  case NET.fromText text of
+    Just net -> Right net
+    Nothing -> Left (T.pack "Text must not be empty")
