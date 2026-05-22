@@ -42,7 +42,7 @@ library
       src
   build-depends:
       base >=4.7 && <5
-    , beeline-params >=0.1 && <0.3
+    , beeline-params >=0.1 && <0.4
     , beeline-routing ==0.3.*
     , bytestring >=0.10 && <0.13
     , containers >=0.6 && <0.9
@@ -75,7 +75,7 @@ test-suite beeline-http-client-test
   build-depends:
       base >=4.7 && <5
     , beeline-http-client
-    , beeline-params >=0.1 && <0.3
+    , beeline-params >=0.1 && <0.4
     , beeline-routing ==0.3.*
     , bytestring >=0.10 && <0.13
     , hedgehog

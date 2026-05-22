@@ -64,7 +64,7 @@ library:
     - Beeline.Routing.RouteRecognizer
   dependencies:
     - base >= 4.7 && < 5
-    - beeline-params >= 0.1 && < 0.3
+    - beeline-params >= 0.1 && < 0.4
     - dlist >= 1.0 && < 1.1
     - http-types >= 0.12 && < 0.13
     - shrubbery >= 0.1 && < 0.3
