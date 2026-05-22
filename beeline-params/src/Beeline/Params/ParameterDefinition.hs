@@ -145,7 +145,7 @@ booleanParam =
     parseBool = parseTrue <|> parseFalse
 
     renderBool =
-      bool trueText falseText
+      bool falseText trueText
   in
     parsedParam ParameterBoolean Nothing parseBool renderBool
 

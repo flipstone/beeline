@@ -26,6 +26,7 @@ tests =
       , ("prop_scientificParam", prop_scientificParam)
       , ("prop_doubleParam", prop_doubleParam)
       , ("prop_floatParam", prop_floatParam)
+      , ("prop_booleanParam", prop_booleanParam)
       ]
 
 prop_textParam :: HH.Property
@@ -113,6 +114,13 @@ prop_floatParam =
       trippingParam
         (Gen.float (Range.linearFracFrom 0 (-bigFloat) bigFloat))
         (P.floatParam "foo")
+
+prop_booleanParam :: HH.Property
+prop_booleanParam =
+  HH.property $
+    trippingParam
+      Gen.bool
+      (P.booleanParam "foo")
 
 trippingParam ::
   (Show a, Eq a) =>
