@@ -7,6 +7,7 @@ License   : MIT
 module Beeline.HTTP.Client.BaseURI
   ( BaseURI (BaseURI, host, port, basePath, secure)
   , defaultBaseURI
+  , effectivePort
   , parseBaseURI
   , renderBaseURI
   ) where
@@ -18,7 +19,10 @@ import qualified Numeric
 
 data BaseURI = BaseURI
   { host :: BS.ByteString
-  , port :: Int
+  , port :: Maybe Int
+  {- ^ Nothing if no port was explicitly specified. Use 'effectivePort'
+  to derive the port to connect on.
+  -}
   , basePath :: BS.ByteString
   , secure :: Bool
   }
@@ -28,10 +32,24 @@ defaultBaseURI :: BaseURI
 defaultBaseURI =
   BaseURI
     { host = BS8.pack "localhost"
-    , port = 80
+    , port = Nothing
     , basePath = BS8.pack ""
     , secure = False
     }
+
+{- | The port to connect on. If this was given explicitly in the URI, then that
+port will be returned. Otherwise then either 80 (not secure) or 443 (secure)
+will be returned.
+-}
+effectivePort :: BaseURI -> Int
+effectivePort baseURI =
+  case port baseURI of
+    Just explicitPort ->
+      explicitPort
+    Nothing ->
+      if secure baseURI
+        then 443
+        else 80
 
 parseBaseURI :: String -> Either String BaseURI
 parseBaseURI string = do
@@ -55,13 +73,10 @@ parseBaseURI string = do
     case URI.uriPort authority of
       (':' : portString) ->
         case Numeric.readDec portString of
-          [(portNum, "")] -> Right portNum
+          [(portNum, "")] -> Right (Just portNum)
           _ -> Left ("Invalid URI port: :" <> portString)
       "" ->
-        Right $
-          if https
-            then 443
-            else 80
+        Right Nothing
       invalidPort ->
         Left ("Invalid URI port: " <> invalidPort)
 
@@ -73,6 +88,7 @@ parseBaseURI string = do
       , secure = https
       }
 
+-- | Renders a 'BaseURI' back to a string. The inverse of 'parseBaseURI'.
 renderBaseURI :: BaseURI -> String
 renderBaseURI baseURI =
   let
@@ -82,12 +98,11 @@ renderBaseURI baseURI =
         else "http://"
 
     portString =
-      Numeric.showInt
-        (port baseURI)
-        ""
+      case port baseURI of
+        Nothing -> ""
+        Just explicitPort -> ":" <> Numeric.showInt explicitPort ""
   in
     protocol
       <> BS8.unpack (host baseURI)
-      <> ":"
       <> portString
       <> BS8.unpack (basePath baseURI)

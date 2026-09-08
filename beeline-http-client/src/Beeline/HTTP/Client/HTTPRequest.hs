@@ -27,7 +27,7 @@ import qualified Data.Text.Encoding as Enc
 import qualified Network.HTTP.Client as HTTP
 import qualified Network.HTTP.Types as HTTPTypes
 
-import Beeline.HTTP.Client.BaseURI (BaseURI, basePath, defaultBaseURI, host, port, secure)
+import Beeline.HTTP.Client.BaseURI (BaseURI, basePath, defaultBaseURI, effectivePort, host, secure)
 import Beeline.HTTP.Client.Operation
   ( NoHeaderParams (NoHeaderParams)
   , NoPathParams (NoPathParams)
@@ -196,7 +196,7 @@ buildHTTPRequest operation request =
       { HTTP.method = HTTPTypes.renderStdMethod method
       , HTTP.secure = secure (baseURI request)
       , HTTP.host = host (baseURI request)
-      , HTTP.port = port (baseURI request)
+      , HTTP.port = effectivePort (baseURI request)
       , HTTP.path = fullPath
       , HTTP.queryString = BP.encodeQuery querySchema (query request)
       , HTTP.requestBody = requestBody
