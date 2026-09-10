@@ -113,7 +113,7 @@ prop_httpGet =
           let
             request =
               BHC.defaultRequest
-                { BHC.baseURI = BHC.defaultBaseURI {BHC.port = Just port}
+                { BHC.baseURI = BHC.defaultBaseURI {BHC.specifiedPort = Just port}
                 , BHC.route = GetFooBar (FooBarId 1)
                 }
 
@@ -167,7 +167,7 @@ prop_httpPostText =
           let
             request =
               BHC.defaultRequest
-                { BHC.baseURI = BHC.defaultBaseURI {BHC.port = Just port}
+                { BHC.baseURI = BHC.defaultBaseURI {BHC.specifiedPort = Just port}
                 , BHC.body = expectedBody
                 }
 
@@ -215,7 +215,7 @@ prop_httpPostNoResponse =
           let
             request =
               BHC.defaultRequest
-                { BHC.baseURI = BHC.defaultBaseURI {BHC.port = Just port}
+                { BHC.baseURI = BHC.defaultBaseURI {BHC.specifiedPort = Just port}
                 , BHC.body = expectedRequestBody
                 }
 
@@ -272,7 +272,7 @@ prop_httpPostBytes =
           let
             request =
               BHC.defaultRequest
-                { BHC.baseURI = BHC.defaultBaseURI {BHC.port = Just port}
+                { BHC.baseURI = BHC.defaultBaseURI {BHC.specifiedPort = Just port}
                 , BHC.body = expectedBody
                 }
 
@@ -332,7 +332,7 @@ prop_httpMultiResponse =
         let
           request =
             BHC.defaultRequest
-              { BHC.baseURI = BHC.defaultBaseURI {BHC.port = Just port}
+              { BHC.baseURI = BHC.defaultBaseURI {BHC.specifiedPort = Just port}
               }
 
         manager <- HTTP.newManager HTTP.defaultManagerSettings
@@ -354,7 +354,7 @@ prop_httpUnexpectedStatus =
         let
           request =
             BHC.defaultRequest
-              { BHC.baseURI = BHC.defaultBaseURI {BHC.port = Just port}
+              { BHC.baseURI = BHC.defaultBaseURI {BHC.specifiedPort = Just port}
               , BHC.route = GetFooBar (FooBarId 1)
               }
 
@@ -386,7 +386,7 @@ prop_httpDecodingFailure =
         let
           request =
             BHC.defaultRequest
-              { BHC.baseURI = BHC.defaultBaseURI {BHC.port = Just port}
+              { BHC.baseURI = BHC.defaultBaseURI {BHC.specifiedPort = Just port}
               , BHC.route = GetFooBar (FooBarId 1)
               }
 
@@ -450,7 +450,7 @@ prop_httpGetQueryParams =
           let
             request =
               BHC.defaultRequest
-                { BHC.baseURI = BHC.defaultBaseURI {BHC.port = Just port}
+                { BHC.baseURI = BHC.defaultBaseURI {BHC.specifiedPort = Just port}
                 , BHC.query = expectedParams
                 }
 
@@ -497,7 +497,7 @@ prop_httpPostQueryParams =
           let
             request =
               BHC.defaultRequest
-                { BHC.baseURI = BHC.defaultBaseURI {BHC.port = Just port}
+                { BHC.baseURI = BHC.defaultBaseURI {BHC.specifiedPort = Just port}
                 , BHC.body = expectedParams
                 }
 
@@ -524,7 +524,7 @@ prop_basePath =
               BHC.defaultRequest
                 { BHC.baseURI =
                     BHC.defaultBaseURI
-                      { BHC.port = Just port
+                      { BHC.specifiedPort = Just port
                       , BHC.basePath = "/someBasePath"
                       }
                 , BHC.route = GetFooBar (FooBarId 1)
@@ -572,7 +572,7 @@ prop_headers =
           let
             request =
               BHC.defaultRequest
-                { BHC.baseURI = BHC.defaultBaseURI {BHC.port = Just port}
+                { BHC.baseURI = BHC.defaultBaseURI {BHC.specifiedPort = Just port}
                 , BHC.headers = ("baz", 10)
                 }
 
@@ -596,7 +596,7 @@ prop_additionalHeaders =
           let
             request =
               BHC.defaultRequest
-                { BHC.baseURI = BHC.defaultBaseURI {BHC.port = Just port}
+                { BHC.baseURI = BHC.defaultBaseURI {BHC.specifiedPort = Just port}
                 , BHC.route = GetFooBar (FooBarId 1)
                 , BHC.additionalHeaders = [("Some-Header", "foobar")]
                 }
@@ -637,14 +637,14 @@ prop_parseBaseURI =
         BHC.defaultBaseURI
           { BHC.host = BS8.pack host
           , BHC.secure = scheme == "https"
-          , BHC.port = mbPort
+          , BHC.specifiedPort = mbPort
           , BHC.basePath = BS8.pack path
           }
 
     Right expected === BHC.parseBaseURI input
 
     let
-      expectedEffectivePort =
+      expectedPort =
         case mbPort of
           Just port -> port
           Nothing ->
@@ -652,7 +652,7 @@ prop_parseBaseURI =
               then 443
               else 80
 
-    Right expectedEffectivePort === fmap BHC.effectivePort (BHC.parseBaseURI input)
+    Right expectedPort === fmap BHC.port (BHC.parseBaseURI input)
 
 {- | The port part of a test URI, spread evenly over three cases.
 
@@ -766,7 +766,7 @@ prop_httpPostMultipart =
           let
             request =
               BHC.defaultRequest
-                { BHC.baseURI = BHC.defaultBaseURI {BHC.port = Just port}
+                { BHC.baseURI = BHC.defaultBaseURI {BHC.specifiedPort = Just port}
                 , BHC.body = (expectedName, expectedContent)
                 }
 

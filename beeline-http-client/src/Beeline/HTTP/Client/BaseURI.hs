@@ -5,9 +5,9 @@ License   : MIT
 @since 0.6.1.0
 -}
 module Beeline.HTTP.Client.BaseURI
-  ( BaseURI (BaseURI, host, port, basePath, secure)
+  ( BaseURI (BaseURI, host, specifiedPort, basePath, secure)
   , defaultBaseURI
-  , effectivePort
+  , port
   , parseBaseURI
   , renderBaseURI
   ) where
@@ -19,8 +19,8 @@ import qualified Numeric
 
 data BaseURI = BaseURI
   { host :: BS.ByteString
-  , port :: Maybe Int
-  {- ^ Nothing if no port was explicitly specified. Use 'effectivePort'
+  , specifiedPort :: Maybe Int
+  {- ^ Nothing if no port was explicitly specified. Use 'port'
   to derive the port to connect on.
   -}
   , basePath :: BS.ByteString
@@ -32,7 +32,7 @@ defaultBaseURI :: BaseURI
 defaultBaseURI =
   BaseURI
     { host = BS8.pack "localhost"
-    , port = Nothing
+    , specifiedPort = Nothing
     , basePath = BS8.pack ""
     , secure = False
     }
@@ -41,9 +41,9 @@ defaultBaseURI =
 port will be returned. Otherwise then either 80 (not secure) or 443 (secure)
 will be returned.
 -}
-effectivePort :: BaseURI -> Int
-effectivePort baseURI =
-  case port baseURI of
+port :: BaseURI -> Int
+port baseURI =
+  case specifiedPort baseURI of
     Just explicitPort ->
       explicitPort
     Nothing ->
@@ -82,7 +82,7 @@ parseBaseURI string = do
 
   pure $
     BaseURI
-      { port = uriPort
+      { specifiedPort = uriPort
       , basePath = BS8.pack (URI.uriPath uri)
       , host = BS8.pack (URI.uriRegName authority)
       , secure = https
@@ -98,7 +98,7 @@ renderBaseURI baseURI =
         else "http://"
 
     portString =
-      case port baseURI of
+      case specifiedPort baseURI of
         Nothing -> ""
         Just explicitPort -> ":" <> Numeric.showInt explicitPort ""
   in
