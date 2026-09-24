@@ -21,6 +21,7 @@ module Beeline.HTTP.Client.ContentType
   , MultipartEncoder (MultipartEncoder)
   ) where
 
+import Beeline.Params (QueryEncoder, encodeQueryBare)
 import qualified Control.Exception as Exc
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Char8 as BS8
@@ -32,8 +33,6 @@ import qualified Data.Text.Lazy as LT
 import qualified Data.Text.Lazy.Encoding as LEnc
 import qualified Network.HTTP.Client as HTTP
 import qualified Network.HTTP.Client.MultipartFormData as Multipart
-
-import Beeline.Params (QueryEncoder, encodeQueryBare)
 
 class ContentTypeEncoder coder where
   type EncodeSchema coder :: Type -> Type

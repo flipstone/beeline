@@ -18,6 +18,8 @@ module Beeline.HTTP.Client.HTTPRequest
   , handleHTTPResponse
   ) where
 
+import qualified Beeline.Params as BP
+import qualified Beeline.Routing as R
 import qualified Control.Exception as Exc
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy as LBS
@@ -47,8 +49,6 @@ import Beeline.HTTP.Client.Operation
   , responseAcceptableContentTypes
   , responseSchemas
   )
-import qualified Beeline.Params as BP
-import qualified Beeline.Routing as R
 
 data StatusResult unexpectedStatusBody err response
   = ExpectedStatus HTTP.Request (HTTP.Response ()) (Either err response)

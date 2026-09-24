@@ -12,13 +12,13 @@ module Beeline.Routing.RouteGenerator
   , generateRoute
   ) where
 
+import Beeline.Params (ParameterDefinition (parameterRenderer))
 import qualified Data.DList as DList
 import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Network.HTTP.Types as HTTP
 import Shrubbery (BranchBuilder, branch, branchBuild, branchEnd, dissect)
 
-import Beeline.Params (ParameterDefinition (parameterRenderer))
 import qualified Beeline.Routing.Router as Router
 
 type PieceList = DList.DList Text

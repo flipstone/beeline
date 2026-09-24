@@ -4,6 +4,10 @@ module Main
   ( main
   ) where
 
+import Beeline.Params ((?+))
+import qualified Beeline.Params as BP
+import Beeline.Routing ((/+), (/-))
+import qualified Beeline.Routing as R
 import qualified Control.Concurrent as Conc
 import qualified Control.Concurrent.MVar as MVar
 import qualified Control.Exception as Exc
@@ -28,10 +32,6 @@ import qualified Network.Wai.Handler.Warp as Warp
 import qualified System.Random as Rand
 
 import qualified Beeline.HTTP.Client as BHC
-import Beeline.Params ((?+))
-import qualified Beeline.Params as BP
-import Beeline.Routing ((/+), (/-))
-import qualified Beeline.Routing as R
 
 main :: IO ()
 main =
@@ -286,7 +286,7 @@ data MultiStatus
   = Multi200 T.Text
   | MultiOtherSuccess T.Text
   | MultiClientError T.Text
-  deriving (Show, Eq)
+  deriving (Eq, Show)
 
 multipleResponseCodes ::
   BHC.Operation
@@ -405,7 +405,7 @@ data TestQueryParams = TestQueryParams
   { queryParam1 :: T.Text
   , queryParam2 :: Maybe Int
   }
-  deriving (Show, Eq)
+  deriving (Eq, Show)
 
 testQueryParamSchema :: BP.ParameterSchema schema => schema TestQueryParams TestQueryParams
 testQueryParamSchema =

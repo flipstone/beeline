@@ -27,13 +27,12 @@ module Beeline.Routing.Router
   , (/:)
   ) where
 
+import Beeline.Params (ParameterDefinition)
 import Data.Kind (Type)
 import Data.Text (Text)
 import qualified Network.HTTP.Types as HTTP
 import Shrubbery (Union)
 import Shrubbery.TypeList (KnownLength)
-
-import Beeline.Params (ParameterDefinition)
 
 data Param route a = Param
   { paramDefinition :: ParameterDefinition a

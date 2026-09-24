@@ -14,11 +14,10 @@ module Fixtures.Subrouter
 import qualified Data.Text as T
 import qualified Hedgehog as HH
 import qualified Hedgehog.Gen as Gen
+import qualified Shrubbery
 
 import Beeline.Routing ((/-), (/:), (/>))
 import qualified Beeline.Routing as R
-import qualified Shrubbery
-
 import qualified Fixtures.FooBarBaz as FooBarBaz
 
 newtype LeftSubroute = LeftSubroute

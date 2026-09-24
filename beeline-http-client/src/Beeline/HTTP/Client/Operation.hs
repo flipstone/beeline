@@ -50,6 +50,8 @@ module Beeline.HTTP.Client.Operation
   , defaultOperation
   ) where
 
+import qualified Beeline.Params as BP
+import qualified Beeline.Routing as R
 import qualified Data.ByteString as BS
 import qualified Data.Set as Set
 import qualified Network.HTTP.Client as HTTP
@@ -66,8 +68,6 @@ import Beeline.HTTP.Client.ContentType
   , toRequestContentType
   , toResponseContentType
   )
-import qualified Beeline.Params as BP
-import qualified Beeline.Routing as R
 
 data Operation err route query headers requestBody response = Operation
   { requestRoute :: R.RouteGenerator route
@@ -83,7 +83,7 @@ data RequestBodySchema a = RequestBodySchema
   }
 
 data NoRequestBody = NoRequestBody
-  deriving (Show, Eq)
+  deriving (Eq, Show)
 
 noRequestBody :: RequestBodySchema NoRequestBody
 noRequestBody =
@@ -132,7 +132,7 @@ instance Functor (ResponseBodySchema err) where
       }
 
 data NoResponseBody = NoResponseBody
-  deriving (Show, Eq)
+  deriving (Eq, Show)
 
 noResponseBody :: ResponseBodySchema err NoResponseBody
 noResponseBody =
@@ -153,21 +153,21 @@ responseBody coder decoder =
     }
 
 data NoPathParams = NoPathParams
-  deriving (Show, Eq)
+  deriving (Eq, Show)
 
 noPathParams :: R.Router r => r NoPathParams
 noPathParams =
   R.get (R.make NoPathParams)
 
 data NoQueryParams = NoQueryParams
-  deriving (Show, Eq)
+  deriving (Eq, Show)
 
 noQueryParams :: BP.QuerySchema schema => schema NoQueryParams NoQueryParams
 noQueryParams =
   BP.makeParams NoQueryParams
 
 data NoHeaderParams = NoHeaderParams
-  deriving (Show, Eq)
+  deriving (Eq, Show)
 
 noHeaderParams :: BP.HeaderSchema schema => schema NoHeaderParams NoHeaderParams
 noHeaderParams =
