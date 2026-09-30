@@ -4,7 +4,7 @@ resolver: lts-20.26
 
 extra-deps:
   - github: flipstone/shrubbery
-    commit: 6dd2236be034f691bd6663d03961750af603c616
+    commit: ad4f362342e26cbbf2875b32b288ccd63b76633d
   - github: flipstone/bounded-text
     commit: 3ef94eeda5402857423284d0c4e021a8c8032498
   - template-haskell-lift-0.1.0.0

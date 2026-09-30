@@ -4,7 +4,7 @@ resolver: lts-22.39
 
 extra-deps:
   - github: flipstone/shrubbery
-    commit: a064ede07e01b753a6eb310fc24d9fd8da1ad826
+    commit: ad4f362342e26cbbf2875b32b288ccd63b76633d
   - git: https://github.com/flipstone/henforcer.git
     commit: f3c2b1e461a37e7ff88d795379edd7386bfa8557
   - pollock-0.1.0.3
