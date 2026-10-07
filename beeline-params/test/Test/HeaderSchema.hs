@@ -15,6 +15,7 @@ import qualified Hedgehog.Range as Range
 
 import Beeline.Params ((?+))
 import qualified Beeline.Params as BP
+import qualified Test.CookieSchema as CookieSchema
 
 tests :: IO Bool
 tests =
@@ -94,7 +95,7 @@ prop_headersOptional =
 prop_headersCookies :: HH.Property
 prop_headersCookies =
   HH.property $ do
-    foo <- HH.forAll genText
+    foo <- HH.forAll CookieSchema.genCookieValue
     bar <- HH.forAll genInt
 
     let
