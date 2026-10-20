@@ -2,6 +2,7 @@
 
 module Test.CookieSchema
   ( tests
+  , genCookieValue
   ) where
 
 import qualified Data.ByteString.Builder as BSB
@@ -31,7 +32,7 @@ tests =
 prop_cookiesRequired :: HH.Property
 prop_cookiesRequired =
   HH.property $ do
-    foo <- HH.forAll genText
+    foo <- HH.forAll genCookieValue
     bar <- HH.forAll genInt
 
     let
@@ -61,7 +62,7 @@ prop_cookiesRequired =
 prop_cookiesOptional :: HH.Property
 prop_cookiesOptional =
   HH.property $ do
-    foo <- HH.forAll (Gen.maybe genText)
+    foo <- HH.forAll (Gen.maybe genCookieValue)
     bar <- HH.forAll (Gen.maybe genInt)
 
     let
@@ -95,9 +96,13 @@ prop_cookiesOptional =
     expectedCookies === actualCookies
     Right (foo, bar) === roundTrippedValue
 
-genText :: HH.Gen T.Text
-genText =
-  Gen.text (Range.linear 0 32) Gen.unicodeAll
+genCookieValue :: HH.Gen T.Text
+genCookieValue =
+  let
+    cookieOctets =
+      '\x21' : ['\x23' .. '\x2B'] <> ['\x2D' .. '\x3A'] <> ['\x3C' .. '\x5B'] <> ['\x5D' .. '\x7E']
+  in
+    Gen.text (Range.linear 0 32) (Gen.element cookieOctets)
 
 genInt :: HH.Gen Int
 genInt =
